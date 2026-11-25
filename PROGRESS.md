@@ -129,29 +129,29 @@
 - [x] `84. Teacher My Profile` (`7:1868`) → `/teacher/profile`
 
 ### Module 4: Student Portal (85–96)
-- [ ] `85. Student Dashboard` (`8:1000`) → `/student`
-- [ ] `86. Student My Profile` (`8:1177`) → `/student/profile`
-- [ ] `87. My Attendance` (`8:1261`) → `/student/attendance`
-- [ ] `88. Student Timetable` (`8:1448`) → `/student/timetable`
-- [ ] `89. Homework & Assignments` (`8:1595`) → `/student/homework`
-- [ ] `90. Student Study Material` (`8:1730`) → `/student/study-material`
-- [ ] `91. Exam Schedule` (`8:1877`) → `/student/exams`
-- [ ] `92. Results & Report Card` (`8:2029`) → `/student/results`
-- [ ] `93. Student Fees & Payments` (`8:2232`) → `/student/fees`
-- [ ] `94. Student Library` (`8:2421`) → `/student/library`
-- [ ] `95. Student Notices & Events` (`8:2547`) → `/student/notices`
-- [ ] `96. Student Messages` (`8:2640`) → `/student/messages`
+- [x] `85. Student Dashboard` (`8:1000`) → `/student`
+- [x] `86. Student My Profile` (`8:1177`) → `/student/profile`
+- [x] `87. My Attendance` (`8:1261`) → `/student/attendance`
+- [x] `88. Student Timetable` (`8:1448`) → `/student/timetable`
+- [x] `89. Homework & Assignments` (`8:1595`) → `/student/homework`
+- [x] `90. Student Study Material` (`8:1730`) → `/student/study-material`
+- [x] `91. Exam Schedule` (`8:1877`) → `/student/exams`
+- [x] `92. Results & Report Card` (`8:2029`) → `/student/results`
+- [x] `93. Student Fees & Payments` (`8:2232`) → `/student/fees`
+- [x] `94. Student Library` (`8:2421`) → `/student/library`
+- [x] `95. Student Notices & Events` (`8:2547`) → `/student/notices`
+- [x] `96. Student Messages` (`8:2640`) → `/student/messages`
 
 ### Module 5: Parent Portal (97–105)
-- [ ] `97. Parent Dashboard` (`9:1757`) → `/parent`
-- [ ] `98. Child Switcher` (`9:1928`) → `/parent/children`
-- [ ] `99. Child Attendance` (`9:2005`) → `/parent/attendance`
-- [ ] `100. Child Results` (`9:2156`) → `/parent/results`
-- [ ] `101. Fees & Online Payment` (`9:2305`) → `/parent/fees`
-- [ ] `102. Homework Status` (`9:2446`) → `/parent/homework`
-- [ ] `103. Teacher Communication` (`9:2578`) → `/parent/messages`
-- [ ] `104. Parent Notices & Events` (`9:2660`) → `/parent/notices`
-- [ ] `105. Apply Leave for Child` (`9:2770`) → `/parent/leave`
+- [x] `97. Parent Dashboard` (`9:1757`) → `/parent`
+- [x] `98. Child Switcher` (`9:1928`) → `/parent/children`
+- [x] `99. Child Attendance` (`9:2005`) → `/parent/attendance`
+- [x] `100. Child Results` (`9:2156`) → `/parent/results`
+- [x] `101. Fees & Online Payment` (`9:2305`) → `/parent/fees`
+- [x] `102. Homework Status` (`9:2446`) → `/parent/homework`
+- [x] `103. Teacher Communication` (`9:2578`) → `/parent/messages`
+- [x] `104. Parent Notices & Events` (`9:2660`) → `/parent/notices`
+- [x] `105. Apply Leave for Child` (`9:2770`) → `/parent/leave`
 
 ### Module 6: Common & Utility Screens (106–110)
 - [ ] `106. Notifications Center` (`6:287`) → `/notifications`
