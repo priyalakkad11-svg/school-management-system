@@ -242,11 +242,13 @@ export function Textarea({ label, error, id, className, ...props }: TextareaProp
 
 export function Checkbox({
   label,
+  ariaLabel,
   checked,
   onChange,
   id,
 }: {
   label: string;
+  ariaLabel?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   id?: string;
@@ -259,6 +261,7 @@ export function Checkbox({
         id={cbId}
         type="checkbox"
         checked={checked}
+        aria-label={!label ? ariaLabel ?? "Select option" : undefined}
         onChange={(e) => onChange(e.target.checked)}
         className="sr-only"
       />
@@ -271,7 +274,7 @@ export function Checkbox({
       >
         {checked ? <Check className="w-3 h-3 stroke-[3]" /> : null}
       </span>
-      <span className="text-xs font-medium text-ink-secondary">{label}</span>
+      {label ? <span className="text-xs font-medium text-ink-secondary">{label}</span> : null}
     </label>
   );
 }

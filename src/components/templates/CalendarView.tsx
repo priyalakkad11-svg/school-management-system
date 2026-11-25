@@ -55,7 +55,7 @@ export function CalendarView({
               </div>
               <StatusBadge tone={item.tone}>{item.tag}</StatusBadge>
             </div>
-            <h3 className="text-base font-bold text-ink">{item.title}</h3>
+            <h2 className="text-base font-bold text-ink">{item.title}</h2>
             <div className="flex flex-col gap-1.5 text-xs text-ink-secondary pt-2 border-t border-line">
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" aria-hidden="true" />

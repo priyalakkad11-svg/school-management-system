@@ -181,7 +181,7 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
   );
 
   return (
-    <div className="min-h-screen flex bg-canvas text-ink">
+    <div className="min-h-screen flex bg-canvas text-ink overflow-x-hidden">
       <aside className="hidden lg:flex w-[260px] shrink-0 bg-sidebar text-ink-on-dark flex-col p-4 sticky top-0 h-screen overflow-y-auto">
         {sidebarHeader}
         {renderNavLinks()}

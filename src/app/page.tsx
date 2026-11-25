@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { CommunicationService } from "@/services/school.service";
 
@@ -124,6 +125,32 @@ export default async function LandingHomePage() {
 
   return (
     <PublicLayout>
+      <JsonLd
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "EducationalOrganization",
+            name: "Greenwood International Academy",
+            url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://greenwood.edu",
+            telephone: "+91-20-6789-4200",
+            email: "admissions@greenwood.edu",
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "42 Knowledge Park Boulevard, Baner Annexe",
+              addressLocality: "Pune",
+              addressRegion: "Maharashtra",
+              postalCode: "411045",
+              addressCountry: "IN",
+            },
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "EduCore — Greenwood International Academy",
+            url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://greenwood.edu",
+          },
+        ]}
+      />
       <section className="bg-subtle/60 border-b border-line py-12 sm:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           <div className="lg:col-span-7 flex flex-col gap-5">

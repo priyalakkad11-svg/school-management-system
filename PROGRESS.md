@@ -14,9 +14,9 @@
 ## Phase Checklist
 - [x] Phase 0: Repository scaffold, tokens, routes manifest, CI, docs
 - [x] Phase 1: Shared layouts, UI primitives, data templates, error pages
-- [ ] Phase 2: All 110 screens implemented & verified
-- [ ] Phase 3: SEO / AEO / GEO, JSON-LD, sitemap, robots, llms.txt, PWA manifest
-- [ ] Phase 4: Full Playwright + axe-core + Lighthouse QA & `QA-REPORT.md`
+- [x] Phase 2: All 110 screens implemented & verified
+- [x] Phase 3: SEO / AEO / GEO, JSON-LD, sitemap, robots, llms.txt, PWA manifest
+- [x] Phase 4: Full Playwright + axe-core + Lighthouse QA & `QA-REPORT.md`
 
 ---
 
@@ -31,89 +31,89 @@
 - [x] `06. First-time Setup / Change Password` (`6:237`) → `/setup-password`
 
 ### Module 2A: Admin Dashboard & School Setup (07–15)
-- [ ] `07. Admin Dashboard` (`11:2223`) → `/admin`
-- [ ] `08. School Profile & Settings` (`11:2444`) → `/admin/setup/school-profile`
-- [ ] `09. Academic Year Management` (`11:2560`) → `/admin/setup/academic-years`
-- [ ] `10. Classes & Sections List` (`11:2705`) → `/admin/setup/classes`
-- [ ] `11. Add / Edit Class & Section` (`11:2861`) → `/admin/setup/classes/manage`
-- [ ] `12. Subjects List & Editor` (`11:2983`) → `/admin/setup/subjects`
-- [ ] `13. Subject-Class Mapping` (`11:3144`) → `/admin/setup/subject-mapping`
-- [ ] `14. Roles & Permissions` (`11:3317`) → `/admin/setup/roles`
-- [ ] `15. User Management` (`11:3484`) → `/admin/setup/users`
+- [x] `07. Admin Dashboard` (`11:2223`) → `/admin`
+- [x] `08. School Profile & Settings` (`11:2444`) → `/admin/setup/school-profile`
+- [x] `09. Academic Year Management` (`11:2560`) → `/admin/setup/academic-years`
+- [x] `10. Classes & Sections List` (`11:2705`) → `/admin/setup/classes`
+- [x] `11. Add / Edit Class & Section` (`11:2861`) → `/admin/setup/classes/manage`
+- [x] `12. Subjects List & Editor` (`11:2983`) → `/admin/setup/subjects`
+- [x] `13. Subject-Class Mapping` (`11:3144`) → `/admin/setup/subject-mapping`
+- [x] `14. Roles & Permissions` (`11:3317`) → `/admin/setup/roles`
+- [x] `15. User Management` (`11:3484`) → `/admin/setup/users`
 
 ### Module 2B: Admin Students (16–23)
-- [ ] `16. Students List` (`11:3645`) → `/admin/students`
-- [ ] `17. Add Student / Admission Form` (`11:3846`) → `/admin/students/new`
-- [ ] `18. Student Profile` (`11:3973`) → `/admin/students/profile`
-- [ ] `19. Bulk Import Students` (`11:4071`) → `/admin/students/bulk-import`
-- [ ] `20. Student Promotion / Transfer` (`11:4213`) → `/admin/students/promotion`
-- [ ] `21. Student ID Card Generator` (`11:4364`) → `/admin/students/id-cards`
-- [ ] `22. Admission Enquiries List` (`11:4476`) → `/admin/students/enquiries`
-- [ ] `23. Admission Application Review` (`11:4666`) → `/admin/students/applications`
+- [x] `16. Students List` (`11:3645`) → `/admin/students`
+- [x] `17. Add Student / Admission Form` (`11:3846`) → `/admin/students/new`
+- [x] `18. Student Profile` (`11:3973`) → `/admin/students/profile`
+- [x] `19. Bulk Import Students` (`11:4071`) → `/admin/students/bulk-import`
+- [x] `20. Student Promotion / Transfer` (`11:4213`) → `/admin/students/promotion`
+- [x] `21. Student ID Card Generator` (`11:4364`) → `/admin/students/id-cards`
+- [x] `22. Admission Enquiries List` (`11:4476`) → `/admin/students/enquiries`
+- [x] `23. Admission Application Review` (`11:4666`) → `/admin/students/applications`
 
 ### Module 2C: Admin Teachers & Staff (24–32)
-- [ ] `24. Teachers List` (`12:3404`) → `/admin/teachers`
-- [ ] `25. Add / Edit Teacher` (`12:3560`) → `/admin/teachers/manage`
-- [ ] `26. Teacher Profile` (`12:3684`) → `/admin/teachers/profile`
-- [ ] `27. Non-Teaching Staff & Editor` (`12:3820`) → `/admin/staff`
-- [ ] `28. Teacher-Subject-Class Assignment` (`12:3976`) → `/admin/teachers/assignments`
-- [ ] `29. Staff Attendance` (`12:4137`) → `/admin/staff/attendance`
-- [ ] `30. Leave Requests Approval` (`12:4307`) → `/admin/staff/leave-requests`
-- [ ] `31. Payroll / Salary List` (`12:4497`) → `/admin/staff/payroll`
-- [ ] `32. Salary Slip` (`12:4656`) → `/admin/staff/salary-slip`
+- [x] `24. Teachers List` (`12:3404`) → `/admin/teachers`
+- [x] `25. Add / Edit Teacher` (`12:3560`) → `/admin/teachers/manage`
+- [x] `26. Teacher Profile` (`12:3684`) → `/admin/teachers/profile`
+- [x] `27. Non-Teaching Staff & Editor` (`12:3820`) → `/admin/staff`
+- [x] `28. Teacher-Subject-Class Assignment` (`12:3976`) → `/admin/teachers/assignments`
+- [x] `29. Staff Attendance` (`12:4137`) → `/admin/staff/attendance`
+- [x] `30. Leave Requests Approval` (`12:4307`) → `/admin/staff/leave-requests`
+- [x] `31. Payroll / Salary List` (`12:4497`) → `/admin/staff/payroll`
+- [x] `32. Salary Slip` (`12:4656`) → `/admin/staff/salary-slip`
 
 ### Module 2D: Admin Attendance & Timetable (33–38)
-- [ ] `33. Student Attendance (Class-wise)` (`12:4783`) → `/admin/attendance/students`
-- [ ] `34. Attendance Reports` (`12:4932`) → `/admin/attendance/reports`
-- [ ] `35. Class Timetable (View)` (`12:5098`) → `/admin/timetable/classes`
-- [ ] `36. Create / Edit Timetable` (`12:5266`) → `/admin/timetable/builder`
-- [ ] `37. Teacher Timetable` (`12:5421`) → `/admin/timetable/teachers`
-- [ ] `38. Substitution Management` (`12:5567`) → `/admin/timetable/substitutions`
+- [x] `33. Student Attendance (Class-wise)` (`12:4783`) → `/admin/attendance/students`
+- [x] `34. Attendance Reports` (`12:4932`) → `/admin/attendance/reports`
+- [x] `35. Class Timetable (View)` (`12:5098`) → `/admin/timetable/classes`
+- [x] `36. Create / Edit Timetable` (`12:5266`) → `/admin/timetable/builder`
+- [x] `37. Teacher Timetable` (`12:5421`) → `/admin/timetable/teachers`
+- [x] `38. Substitution Management` (`12:5567`) → `/admin/timetable/substitutions`
 
 ### Module 2E: Admin Exams & Results (39–47)
-- [ ] `39. Exam Schedule List` (`13:4366`) → `/admin/exams`
-- [ ] `40. Create Exam` (`13:4503`) → `/admin/exams/create`
-- [ ] `41. Exam Time Table` (`13:4614`) → `/admin/exams/timetable`
-- [ ] `42. Admin Marks Entry` (`13:4769`) → `/admin/exams/marks-entry`
-- [ ] `43. Grade System Settings` (`13:4947`) → `/admin/exams/grades`
-- [ ] `44. Result Generation` (`13:5126`) → `/admin/exams/results`
-- [ ] `45. Report Card (View / Print)` (`13:5302`) → `/admin/exams/report-card`
-- [ ] `46. Admit Card Generator` (`13:5451`) → `/admin/exams/admit-cards`
-- [ ] `47. Result Analytics` (`13:5581`) → `/admin/exams/analytics`
+- [x] `39. Exam Schedule List` (`13:4366`) → `/admin/exams`
+- [x] `40. Create Exam` (`13:4503`) → `/admin/exams/create`
+- [x] `41. Exam Time Table` (`13:4614`) → `/admin/exams/timetable`
+- [x] `42. Admin Marks Entry` (`13:4769`) → `/admin/exams/marks-entry`
+- [x] `43. Grade System Settings` (`13:4947`) → `/admin/exams/grades`
+- [x] `44. Result Generation` (`13:5126`) → `/admin/exams/results`
+- [x] `45. Report Card (View / Print)` (`13:5302`) → `/admin/exams/report-card`
+- [x] `46. Admit Card Generator` (`13:5451`) → `/admin/exams/admit-cards`
+- [x] `47. Result Analytics` (`13:5581`) → `/admin/exams/analytics`
 
 ### Module 2F: Admin Fees (48–53)
-- [ ] `48. Fee Structure Setup` (`14:2223`) → `/admin/fees/structure`
-- [ ] `49. Fee Collection` (`14:2382`) → `/admin/fees/collect`
-- [ ] `50. Fee Receipt` (`14:2515`) → `/admin/fees/receipt`
-- [ ] `51. Pending / Defaulters List` (`14:2640`) → `/admin/fees/defaulters`
-- [ ] `52. Fee Reports` (`14:2785`) → `/admin/fees/reports`
-- [ ] `53. Discounts & Scholarships` (`14:2961`) → `/admin/fees/scholarships`
+- [x] `48. Fee Structure Setup` (`14:2223`) → `/admin/fees/structure`
+- [x] `49. Fee Collection` (`14:2382`) → `/admin/fees/collect`
+- [x] `50. Fee Receipt` (`14:2515`) → `/admin/fees/receipt`
+- [x] `51. Pending / Defaulters List` (`14:2640`) → `/admin/fees/defaulters`
+- [x] `52. Fee Reports` (`14:2785`) → `/admin/fees/reports`
+- [x] `53. Discounts & Scholarships` (`14:2961`) → `/admin/fees/scholarships`
 
 ### Module 2G: Admin Library & Transport (54–60)
-- [ ] `54. Books List` (`14:3097`) → `/admin/library/books`
-- [ ] `55. Add / Edit Book` (`14:3253`) → `/admin/library/books/manage`
-- [ ] `56. Issue / Return Book` (`14:3361`) → `/admin/library/circulation`
-- [ ] `57. Library Members & Fines` (`14:3493`) → `/admin/library/members`
-- [ ] `58. Transport Routes & Editor` (`14:3669`) → `/admin/transport/routes`
-- [ ] `59. Vehicles & Drivers` (`14:3806`) → `/admin/transport/vehicles`
-- [ ] `60. Student Transport Assignment` (`14:3937`) → `/admin/transport/assignments`
+- [x] `54. Books List` (`14:3097`) → `/admin/library/books`
+- [x] `55. Add / Edit Book` (`14:3253`) → `/admin/library/books/manage`
+- [x] `56. Issue / Return Book` (`14:3361`) → `/admin/library/circulation`
+- [x] `57. Library Members & Fines` (`14:3493`) → `/admin/library/members`
+- [x] `58. Transport Routes & Editor` (`14:3669`) → `/admin/transport/routes`
+- [x] `59. Vehicles & Drivers` (`14:3806`) → `/admin/transport/vehicles`
+- [x] `60. Student Transport Assignment` (`14:3937`) → `/admin/transport/assignments`
 
 ### Module 2H: Admin Hostel & Communication (61–68)
-- [ ] `61. Hostel Rooms` (`15:3050`) → `/admin/hostel/rooms`
-- [ ] `62. Hostel Room Allocation` (`15:3209`) → `/admin/hostel/allocations`
-- [ ] `63. Notice Board & Announcements` (`15:3356`) → `/admin/communication/notices`
-- [ ] `64. Events & Calendar` (`15:3503`) → `/admin/communication/events`
-- [ ] `65. Holiday List` (`15:3658`) → `/admin/communication/holidays`
-- [ ] `66. Admin Messages / Inbox` (`15:3799`) → `/admin/communication/messages`
-- [ ] `67. SMS / Email / WhatsApp Log` (`15:3890`) → `/admin/communication/notifications-log`
-- [ ] `68. Complaints & Feedback` (`15:4074`) → `/admin/communication/complaints`
+- [x] `61. Hostel Rooms` (`15:3050`) → `/admin/hostel/rooms`
+- [x] `62. Hostel Room Allocation` (`15:3209`) → `/admin/hostel/allocations`
+- [x] `63. Notice Board & Announcements` (`15:3356`) → `/admin/communication/notices`
+- [x] `64. Events & Calendar` (`15:3503`) → `/admin/communication/events`
+- [x] `65. Holiday List` (`15:3658`) → `/admin/communication/holidays`
+- [x] `66. Admin Messages / Inbox` (`15:3799`) → `/admin/communication/messages`
+- [x] `67. SMS / Email / WhatsApp Log` (`15:3890`) → `/admin/communication/notifications-log`
+- [x] `68. Complaints & Feedback` (`15:4074`) → `/admin/communication/complaints`
 
 ### Module 2I: Admin Reports & System Settings (69–73)
-- [ ] `69. Reports Center` (`15:4217`) → `/admin/reports`
-- [ ] `70. Inventory / Assets` (`15:4346`) → `/admin/inventory`
-- [ ] `71. Documents & Certificate Generator` (`15:4502`) → `/admin/documents`
-- [ ] `72. Audit Logs` (`15:4600`) → `/admin/audit-logs`
-- [ ] `73. Backup & System Settings` (`15:4748`) → `/admin/system-settings`
+- [x] `69. Reports Center` (`15:4217`) → `/admin/reports`
+- [x] `70. Inventory / Assets` (`15:4346`) → `/admin/inventory`
+- [x] `71. Documents & Certificate Generator` (`15:4502`) → `/admin/documents`
+- [x] `72. Audit Logs` (`15:4600`) → `/admin/audit-logs`
+- [x] `73. Backup & System Settings` (`15:4748`) → `/admin/system-settings`
 
 ### Module 3: Teacher Portal (74–84)
 - [x] `74. Teacher Dashboard` (`7:331`) → `/teacher`
@@ -154,9 +154,9 @@
 - [x] `105. Apply Leave for Child` (`9:2770`) → `/parent/leave`
 
 ### Module 6: Common & Utility Screens (106–110)
-- [ ] `106. Notifications Center` (`6:287`) → `/notifications`
-- [ ] `107. My Profile & Account Settings` (`6:395`) → `/account`
-- [ ] `108. Search Results` (`6:495`) → `/search`
-- [ ] `109. 404 / Error / Access Denied` (`6:599`) → `/status-errors`
-- [ ] `110. Help / Support` (`6:677`) → `/help`
+- [x] `106. Notifications Center` (`6:287`) → `/notifications`
+- [x] `107. My Profile & Account Settings` (`6:395`) → `/account`
+- [x] `108. Search Results` (`6:495`) → `/search`
+- [x] `109. 404 / Error / Access Denied` (`6:599`) → `/status-errors`
+- [x] `110. Help / Support` (`6:677`) → `/help`
 

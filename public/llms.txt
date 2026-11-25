@@ -1,0 +1,19 @@
+# Greenwood International Academy — EduCore School Portal
+
+> CBSE & IB K-12 School Campus in Baner Annexe, Pune powered by EduCore ERP v4.2.
+
+## Public Pages
+- [School Home](/): Overview of academics, campus highlights, notices, and admissions.
+- [About Greenwood](/about): Mission, leadership, CBSE Affiliation #2730841, and ISO 21001:2018 quality standards.
+- [Academics & Curriculum](/academics): Pre-Primary, Primary, Middle, and Senior Secondary subjects and assessment calendar.
+- [Admissions 2026–27](/admissions): Fee tiers, eligibility, seat availability, and 4-step admission process.
+- [Online Admission Enquiry](/apply): Submit an online student admission enquiry for AY 2026–27.
+- [Campus Life & Facilities](/campus-life): 22 STEM & Robotics labs, 18,400+ volume library, 18 GPS-tracked bus routes, and hostel dining.
+- [Official Notices](/notices): Active academic circulars, PTM invitations, and uniform notices.
+- [Events Calendar](/events): Upcoming exams, Science Expo, PTMs, and fee due dates.
+- [Frequently Asked Questions](/faq): Portal access, fee receipts, and GPS bus notification guidance.
+- [Contact Us](/contact): 42 Knowledge Park Boulevard, Baner Annexe, Pune 411045 • +91 20 6789 4200.
+
+## Portal Entry Points (Authenticated)
+- [Unified Portal Login](/login): Role-based entry for Admin, Teacher, Student, Parent, and Staff.
+

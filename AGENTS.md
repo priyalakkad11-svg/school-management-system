@@ -21,9 +21,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `node`: `26.13.1`
 - `pnpm`: `12.23.0`
 - `next`: `16.4.6`
-- `react` / `react-dom`: `19.3.0`
+- `react` / `react-dom`: `19.3.1`
 - `typescript`: `5.9.3` (Next.js 16 compatible)
-- `tailwindcss` / `@tailwindcss/turbopack`: `4.3.3`
+- `tailwindcss` / `@tailwindcss/turbopack`: `4.3.5`
 - `lucide-react`: `1.79.0`
 - `react-hook-form`: `7.92.0`
 - `zod`: `4.6.7`

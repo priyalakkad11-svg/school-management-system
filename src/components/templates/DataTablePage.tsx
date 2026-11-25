@@ -356,8 +356,10 @@ export function DataTablePage<T extends { id: string }>({
                     <tr key={group.id} className="bg-subtle border-b border-line">
                       {enableBulkSelect ? (
                         <th className="py-2.5 px-3 w-12">
+                          <span className="sr-only">Select</span>
                           <Checkbox
                             label=""
+                            ariaLabel="Select all rows"
                             checked={allVisibleSelected}
                             onChange={toggleAllVisible}
                           />
@@ -417,6 +419,7 @@ export function DataTablePage<T extends { id: string }>({
                         <td className="py-2.5 px-3">
                           <Checkbox
                             label=""
+                            ariaLabel={`Select row ${row.original.id}`}
                             checked={selectedIds.includes(row.original.id)}
                             onChange={(checked) => toggleSingle(row.original.id, checked)}
                           />
@@ -453,6 +456,7 @@ export function DataTablePage<T extends { id: string }>({
                       {enableBulkSelect ? (
                         <Checkbox
                           label=""
+                          ariaLabel={`Select row ${item.id}`}
                           checked={selectedIds.includes(item.id)}
                           onChange={(checked) => toggleSingle(item.id, checked)}
                         />

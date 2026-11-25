@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, StatusBadge } from "@/components/ui/primitives";
 
 export const metadata: Metadata = {
@@ -11,6 +12,22 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <PublicLayout>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          mainEntity: {
+            "@type": "EducationalOrganization",
+            name: "Greenwood International Academy",
+            contactPoint: {
+              "@type": "ContactPoint",
+              telephone: "+91-20-6789-4200",
+              email: "admissions@greenwood.edu",
+              contactType: "admissions and IT support",
+            },
+          },
+        }}
+      />
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 flex flex-col gap-8">
         <div className="flex flex-col gap-2">
           <span className="self-start">

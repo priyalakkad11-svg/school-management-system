@@ -235,7 +235,7 @@ export function DashboardPage({
       </Card>
 
       {bottomNote ? (
-        <Card className="p-4">
+        <Card className="p-4 break-words">
           <p className="text-xs font-medium text-ink-secondary">{bottomNote}</p>
         </Card>
       ) : null}

@@ -201,11 +201,11 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
 ];
 
 export const MONTHLY_REVENUE_ATTENDANCE_CHART = [
-  { month: "Jun", feesLakhs: 28, attendancePct: 92 },
-  { month: "Jul", feesLakhs: 24, attendancePct: 95 },
-  { month: "Aug", feesLakhs: 36, attendancePct: 93 },
-  { month: "Sep", feesLakhs: 21, attendancePct: 94 },
-  { month: "Oct", feesLakhs: 32, attendancePct: 96 },
-  { month: "Nov", feesLakhs: 43, attendancePct: 95.4 },
+  { month: "Jun", feeLakhs: 28, attendancePct: 92 },
+  { month: "Jul", feeLakhs: 24, attendancePct: 95 },
+  { month: "Aug", feeLakhs: 36, attendancePct: 93 },
+  { month: "Sep", feeLakhs: 21, attendancePct: 94 },
+  { month: "Oct", feeLakhs: 32, attendancePct: 96 },
+  { month: "Nov", feeLakhs: 43, attendancePct: 95.4 },
 ];
 

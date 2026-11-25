@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, StatusBadge } from "@/components/ui/primitives";
 
 export const metadata: Metadata = {
@@ -18,6 +19,19 @@ const EVENTS = [
 export default function PublicEventsPage() {
   return (
     <PublicLayout>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Event",
+          name: "Annual STEM & Robotics Science Expo",
+          startDate: "2026-12-12T10:00:00+05:30",
+          location: {
+            "@type": "Place",
+            name: "Greenwood International Academy Main Auditorium",
+            address: "Baner Annexe, Pune 411045",
+          },
+        }}
+      />
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 flex flex-col gap-8">
         <div className="flex flex-col gap-2">
           <span className="self-start">
