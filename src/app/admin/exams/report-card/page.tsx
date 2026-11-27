@@ -29,7 +29,7 @@ export default function AdminReportCardPrintPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Official marks table">
+      <div className="w-full max-w-full overflow-x-auto" tabIndex={0} role="region" aria-label="Official marks table">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-subtle border-b border-line">

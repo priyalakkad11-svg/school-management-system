@@ -1,0 +1,2 @@
+-- EduCore (Greenwood International Academy) Seed Data
+-- Appended incrementally per module. Idempotent inserts (ON CONFLICT DO NOTHING).

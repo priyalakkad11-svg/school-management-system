@@ -17,6 +17,25 @@
 - [x] Phase 2: All 110 screens implemented & verified
 - [x] Phase 3: SEO / AEO / GEO, JSON-LD, sitemap, robots, llms.txt, PWA manifest
 - [x] Phase 4: Full Playwright + axe-core + Lighthouse QA & `QA-REPORT.md`
+- [ ] Phase 5: Supabase Backend, Auth, RLS, Storage & Real Services
+
+---
+
+## PHASE 5 (Supabase Integration Checklist)
+- [x] Foundation: Supabase clients (`browser`, `server`, `admin`), proxy session refresh, DB types, error mapper, server-side pagination/filter helpers, `check:mocks`
+- [x] 1. Auth & profiles (login for all roles, forgot/reset password, OTP via email, first-time password setup, sign out, role redirects)
+- [ ] 2. School setup (academic year, classes, sections, subjects, mappings, roles/permissions, users)
+- [ ] 3. Students & admissions & guardians
+- [ ] 4. Teachers, staff, payroll, leave
+- [ ] 5. Attendance & timetable
+- [ ] 6. Exams, marks, grades, results, report cards
+- [ ] 7. Fees, discounts, receipts
+- [ ] 8. Library, transport, hostel
+- [ ] 9. Communication (notices, events, holidays, messages, notification log, complaints)
+- [ ] 10. Reports, inventory, documents/certificates, audit logs, system settings
+- [ ] 11. Teacher / Student / Parent portals
+- [ ] 12. Common (notifications, account, search, help)
+- [ ] 13. Public pages data (notices, events, enquiry)
 
 ---
 

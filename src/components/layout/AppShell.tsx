@@ -70,8 +70,6 @@ export interface AppShellProps {
   children: React.ReactNode;
 }
 
-const subscribeNoop = () => () => {};
-
 export function AppShell({ role, title, subtitle, actions, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -82,7 +80,7 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
     role === "teacher" || role === "student" || role === "parent" ? role : "admin";
 
   const user = React.useSyncExternalStore(
-    subscribeNoop,
+    AuthService.subscribe,
     AuthService.getCurrentClientUser,
     () => DEMO_USERS[shellRole],
   );
@@ -104,9 +102,10 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
     router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
   };
 
-  const handleLogout = () => {
-    AuthService.signOut();
+  const handleLogout = async () => {
+    await AuthService.signOut();
     router.push("/login");
+    router.refresh();
   };
 
   const renderNavLinks = (onNavigate?: () => void) => (
@@ -264,7 +263,7 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 pb-24 lg:pb-8 flex flex-col gap-6 max-w-[1400px] w-full mx-auto">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 pb-24 lg:pb-8 flex flex-col gap-6 max-w-[1400px] w-full mx-auto">
           {actions ? (
             <div className="flex flex-wrap items-center justify-end gap-3">{actions}</div>
           ) : null}

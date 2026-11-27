@@ -43,7 +43,7 @@ export function PrintView({
         </div>
       }
     >
-      <Card className="max-w-3xl w-full mx-auto p-6 sm:p-10 flex flex-col gap-6 print:border-0 print:shadow-none">
+      <Card className="max-w-3xl w-full min-w-0 mx-auto p-6 sm:p-10 flex flex-col gap-6 print:border-0 print:shadow-none">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
           <div className="flex items-center gap-3">
             <span className="w-11 h-11 rounded-md bg-brand text-ink-on-dark font-bold text-base inline-flex items-center justify-center">

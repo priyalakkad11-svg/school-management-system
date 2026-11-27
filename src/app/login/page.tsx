@@ -32,8 +32,9 @@ export default function LoginPage() {
   const { showToast } = useToast();
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("admin");
   const [identifier, setIdentifier] = React.useState(DEMO_USERS.admin.email);
-  const [password, setPassword] = React.useState("Educore@2026");
+  const [password, setPassword] = React.useState("");
   const [remember, setRemember] = React.useState(true);
+  const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const handleRoleChange = (role: UserRole) => {
@@ -42,15 +43,31 @@ export default function LoginPage() {
     setError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim() || password.length < 6) {
       setError("Please enter a valid portal email / ID and password (min 6 characters).");
       return;
     }
-    const res = AuthService.signIn(selectedRole);
-    showToast(`Signed in as ${res.user.name} (${res.user.subtitle})`);
-    router.push(res.redirectTo);
+    setPending(true);
+    setError(null);
+    try {
+      const res = await AuthService.signInWithCredentials({
+        role: selectedRole,
+        identifier,
+        password,
+        rememberDevice: remember,
+      });
+      if (!res.ok || !res.user || !res.redirectTo) {
+        setError(res.error ?? "Invalid email/ID or password.");
+        return;
+      }
+      showToast(`Signed in as ${res.user.name} (${res.user.subtitle})`);
+      router.push(res.redirectTo);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -120,8 +137,8 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <Button type="submit" variant="primary" size="lg" className="w-full">
-          {ROLE_BUTTON_LABEL[selectedRole]}
+        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={pending}>
+          {pending ? "Signing in..." : ROLE_BUTTON_LABEL[selectedRole]}
         </Button>
 
         <div className="pt-2 border-t border-line flex items-center justify-between text-xs text-ink-secondary">

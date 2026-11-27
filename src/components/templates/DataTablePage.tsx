@@ -30,11 +30,13 @@ import {
   Card,
   Checkbox,
   EmptyState,
+  ErrorState,
   Select,
   StatusBadge,
 } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
 import type { PortalRole } from "@/lib/routes";
+import type { TableQueryParams } from "@/lib/query";
 import type { StatusTone } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +73,16 @@ export interface DataTableActionLink {
   variant?: "primary" | "outline" | "secondary";
 }
 
+export interface DataTableServerConfig {
+  total: number;
+  page: number;
+  pageSize: number;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  onQueryChange: (params: TableQueryParams) => void;
+}
+
 export interface DataTablePageProps<T extends { id: string }> {
   role: PortalRole;
   title: string;
@@ -90,6 +102,7 @@ export interface DataTablePageProps<T extends { id: string }> {
   emptyTitle?: string;
   emptyDescription?: string;
   topSummary?: React.ReactNode;
+  serverSide?: DataTableServerConfig;
 }
 
 export function DataTablePage<T extends { id: string }>({
@@ -111,6 +124,7 @@ export function DataTablePage<T extends { id: string }>({
   emptyTitle = "No matching records",
   emptyDescription = "Try clearing your search term or switching active filters.",
   topSummary,
+  serverSide,
 }: DataTablePageProps<T>) {
   const { showToast } = useToast();
   const [search, setSearch] = React.useState("");
@@ -119,10 +133,32 @@ export function DataTablePage<T extends { id: string }>({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 8,
+    pageSize: serverSide?.pageSize ?? 8,
   });
 
+  const emitServerQuery = React.useCallback(
+    (
+      nextPage: number,
+      nextSearch: string,
+      nextFilters: Record<string, string>,
+      nextSorting: SortingState,
+    ) => {
+      if (!serverSide) return;
+      const firstSort = nextSorting[0];
+      serverSide.onQueryChange({
+        page: nextPage,
+        pageSize: serverSide.pageSize,
+        search: nextSearch || undefined,
+        sortBy: firstSort?.id,
+        sortDir: firstSort ? (firstSort.desc ? "desc" : "asc") : undefined,
+        filters: nextFilters,
+      });
+    },
+    [serverSide],
+  );
+
   const filteredRows = React.useMemo(() => {
+    if (serverSide) return rows;
     const q = search.trim().toLowerCase();
     return rows.filter((row) => {
       for (const f of filters) {
@@ -136,16 +172,32 @@ export function DataTablePage<T extends { id: string }>({
         String(col.accessor(row)).toLowerCase().includes(q),
       );
     });
-  }, [rows, filters, filterValues, search, columns]);
+  }, [serverSide, rows, filters, filterValues, search, columns]);
 
   const handleSearchChange = (nextSearch: string) => {
     setSearch(nextSearch);
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    emitServerQuery(1, nextSearch, filterValues, sorting);
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilterValues((prev) => ({ ...prev, [key]: value }));
+    const nextFilters = { ...filterValues, [key]: value };
+    setFilterValues(nextFilters);
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    emitServerQuery(1, search, nextFilters, sorting);
+  };
+
+  const handleSortClick = (columnId: string) => {
+    setSorting((prev) => {
+      const current = prev.find((s) => s.id === columnId);
+      const next = !current
+        ? [{ id: columnId, desc: false }]
+        : !current.desc
+          ? [{ id: columnId, desc: true }]
+          : [];
+      emitServerQuery(1, search, filterValues, next);
+      return next;
+    });
   };
 
   const tableColumns = React.useMemo<ColumnDef<typeof TABLE_FEATURES, T>[]>(
@@ -169,8 +221,15 @@ export function DataTablePage<T extends { id: string }>({
     onPaginationChange: setPagination,
   });
 
-  const pageRows = table.getRowModel().rows;
-  const pageCount = Math.max(1, table.getPageCount());
+  const pageRows = serverSide
+    ? table.getRowModel().rows.slice(0, serverSide.pageSize)
+    : table.getRowModel().rows;
+  const totalCount = serverSide ? serverSide.total : filteredRows.length;
+  const currentPage = serverSide ? serverSide.page : pagination.pageIndex + 1;
+  const effectivePageSize = serverSide ? serverSide.pageSize : pagination.pageSize;
+  const pageCount = Math.max(1, Math.ceil(totalCount / effectivePageSize));
+  const canPrev = serverSide ? currentPage > 1 : table.getCanPreviousPage();
+  const canNext = serverSide ? currentPage < pageCount : table.getCanNextPage();
   const allVisibleSelected =
     pageRows.length > 0 && pageRows.every((r) => selectedIds.includes(r.original.id));
 
@@ -268,7 +327,7 @@ export function DataTablePage<T extends { id: string }>({
     <AppShell role={role} title={title} subtitle={subtitle} actions={headerActions}>
       {topSummary}
 
-      <Card className="p-4 flex flex-col gap-4">
+      <Card className="p-4 flex flex-col gap-4 min-w-0 w-full">
         <div className="flex flex-col md:flex-row md:items-end gap-3 justify-between">
           <div className="relative flex-1 min-w-0">
             <label htmlFor="dt-search" className="sr-only">
@@ -328,7 +387,9 @@ export function DataTablePage<T extends { id: string }>({
           </div>
         ) : null}
 
-        {filteredRows.length === 0 ? (
+        {serverSide?.error ? (
+          <ErrorState description={serverSide.error} onRetry={serverSide.onRetry} />
+        ) : filteredRows.length === 0 ? (
           <EmptyState
             title={emptyTitle}
             description={emptyDescription}
@@ -340,6 +401,7 @@ export function DataTablePage<T extends { id: string }>({
                     setSearch("");
                     setFilterValues({});
                     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                    emitServerQuery(1, "", {}, sorting);
                   }}
                 >
                   Reset Filters
@@ -377,14 +439,7 @@ export function DataTablePage<T extends { id: string }>({
                             {canSort ? (
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setSorting((prev) => {
-                                    const current = prev.find((s) => s.id === header.id);
-                                    if (!current) return [{ id: header.id, desc: false }];
-                                    if (!current.desc) return [{ id: header.id, desc: true }];
-                                    return [];
-                                  })
-                                }
+                                onClick={() => handleSortClick(header.id)}
                                 className="inline-flex items-center gap-1.5 hover:text-ink cursor-pointer"
                               >
                                 <span>{col?.header ?? header.id}</span>
@@ -484,28 +539,39 @@ export function DataTablePage<T extends { id: string }>({
 
             <div className="pt-2 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-secondary">
               <span>
-                Showing {pagination.pageIndex * pagination.pageSize + 1}–
-                {Math.min((pagination.pageIndex + 1) * pagination.pageSize, filteredRows.length)} of{" "}
-                {filteredRows.length} entries
+                Showing {totalCount === 0 ? 0 : (currentPage - 1) * effectivePageSize + 1}–
+                {Math.min(currentPage * effectivePageSize, totalCount)} of {totalCount} entries
               </span>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={!table.getCanPreviousPage()}
-                  onClick={() => table.previousPage()}
+                  disabled={!canPrev}
+                  onClick={() => {
+                    if (serverSide) {
+                      emitServerQuery(currentPage - 1, search, filterValues, sorting);
+                    } else {
+                      table.previousPage();
+                    }
+                  }}
                 >
                   <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                   <span>Previous</span>
                 </Button>
                 <span className={cn("px-2 font-medium text-ink")}>
-                  Page {pagination.pageIndex + 1} of {pageCount}
+                  Page {currentPage} of {pageCount}
                 </span>
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={!table.getCanNextPage()}
-                  onClick={() => table.nextPage()}
+                  disabled={!canNext}
+                  onClick={() => {
+                    if (serverSide) {
+                      emitServerQuery(currentPage + 1, search, filterValues, sorting);
+                    } else {
+                      table.nextPage();
+                    }
+                  }}
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" aria-hidden="true" />

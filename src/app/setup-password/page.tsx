@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Button, Input, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { AuthService } from "@/services/auth.service";
 
 const SECURITY_QUESTIONS = [
   { label: "What was your first school's name?", value: "first_school" },
@@ -15,22 +16,48 @@ const SECURITY_QUESTIONS = [
 export default function SetupPasswordPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [tempPassword, setTempPassword] = React.useState("TMP-2026-8841");
-  const [newPassword, setNewPassword] = React.useState("Educore@2026");
-  const [confirmPassword, setConfirmPassword] = React.useState("Educore@2026");
+  const [identifier, setIdentifier] = React.useState("");
+  const [tempPassword, setTempPassword] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [question, setQuestion] = React.useState("first_school");
-  const [answer, setAnswer] = React.useState("St. Xavier Public School");
+  const [answer, setAnswer] = React.useState("");
+  const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tempPassword.trim() || newPassword.length < 8 || newPassword !== confirmPassword || !answer.trim()) {
+    if (
+      !identifier.trim() ||
+      !tempPassword.trim() ||
+      newPassword.length < 8 ||
+      newPassword !== confirmPassword ||
+      !answer.trim()
+    ) {
       setError("Complete all password fields and security recovery details.");
       return;
     }
+    setPending(true);
     setError(null);
-    showToast("Account activated! Please sign in.");
-    router.push("/login");
+    try {
+      const res = await AuthService.setupPassword({
+        identifier: identifier.trim(),
+        tempPassword,
+        newPassword,
+        confirmPassword,
+        securityQuestion: question,
+        securityAnswer: answer,
+      });
+      if (!res.ok || !res.data) {
+        setError(res.error ?? "Unable to activate account.");
+        return;
+      }
+      showToast("Account activated! Signed in to your portal.");
+      router.push(res.data.redirectTo);
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -48,10 +75,19 @@ export default function SetupPasswordPage() {
         </div>
 
         <Input
-          label="Current Temporary Password"
+          label="Email or School ID"
           type="text"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          placeholder="ADM-2026-0142 or name@greenwood.edu"
+        />
+
+        <Input
+          label="Current Temporary Password"
+          type="password"
           value={tempPassword}
           onChange={(e) => setTempPassword(e.target.value)}
+          placeholder="••••••••••••"
         />
 
         <Input
@@ -59,6 +95,7 @@ export default function SetupPasswordPage() {
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="Minimum 8 characters"
         />
 
         <Input
@@ -66,6 +103,7 @@ export default function SetupPasswordPage() {
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Re-enter new password"
         />
 
         <Select
@@ -80,15 +118,15 @@ export default function SetupPasswordPage() {
           type="text"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
+          placeholder="Your recovery answer"
         />
 
         {error ? <p className="text-xs font-medium text-danger">{error}</p> : null}
 
-        <Button type="submit" variant="primary" size="lg" className="w-full mt-1">
-          Save &amp; Activate Account
+        <Button type="submit" variant="primary" size="lg" className="w-full mt-1" disabled={pending}>
+          {pending ? "Activating Account..." : "Save & Activate Account"}
         </Button>
       </form>
     </AuthLayout>
   );
 }
-

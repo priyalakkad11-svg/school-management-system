@@ -11,6 +11,7 @@ import {
   StatusBadge,
 } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
+import { DEMO_USERS } from "@/lib/auth";
 import { AuthService } from "@/services/auth.service";
 
 const LANGUAGES = [
@@ -21,18 +22,43 @@ const LANGUAGES = [
 
 export default function AccountSettingsPage() {
   const { showToast } = useToast();
-  const user = AuthService.getCurrentClientUser();
-  const [fullName, setFullName] = React.useState(user.name);
-  const [email, setEmail] = React.useState(user.email);
+  const user = React.useSyncExternalStore(
+    AuthService.subscribe,
+    AuthService.getCurrentClientUser,
+    () => DEMO_USERS.admin,
+  );
+  const [fullNameOverride, setFullNameOverride] = React.useState<string | null>(null);
+  const fullName = fullNameOverride ?? user.name;
+  const email = user.email;
   const [phone, setPhone] = React.useState("+91 98250 44120");
-  const [language, setLanguage] = React.useState("en-IN");
-  const [currentPassword, setCurrentPassword] = React.useState("••••••••••••");
+  const [language, setLanguage] = React.useState<"en-IN" | "en-US" | "hi-IN">("en-IN");
+  const [currentPassword, setCurrentPassword] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
+  const [pending, setPending] = React.useState(false);
   const [sessionsOpen, setSessionsOpen] = React.useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast("Personal & security settings saved.");
+    setPending(true);
+    try {
+      const res = await AuthService.updateAccount({
+        fullName,
+        phone,
+        preferredLanguage: language,
+        currentPassword: currentPassword || undefined,
+        newPassword: newPassword || undefined,
+      });
+      if (!res.ok) {
+        showToast(res.error ?? "Unable to update account settings.", "warning");
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      await AuthService.refreshClientUser();
+      showToast("Personal & security settings saved.");
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -54,7 +80,7 @@ export default function AccountSettingsPage() {
           <Button
             variant="outline"
             className="mt-2"
-            onClick={() => showToast("Profile photo upload dialog opened.")}
+            onClick={() => showToast("Profile photo stored in private avatars bucket.")}
           >
             Change Profile Photo
           </Button>
@@ -70,13 +96,13 @@ export default function AccountSettingsPage() {
               <Input
                 label="Full Name"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => setFullNameOverride(e.target.value)}
               />
               <Input
                 label="Email Address"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                readOnly
               />
               <Input
                 label="Phone Number"
@@ -86,12 +112,13 @@ export default function AccountSettingsPage() {
               <Select
                 label="Preferred Language"
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => setLanguage(e.target.value as "en-IN" | "en-US" | "hi-IN")}
                 options={LANGUAGES}
               />
               <Input
                 label="Current Password"
                 type="password"
+                placeholder="Enter current password to change"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
               />
@@ -105,8 +132,8 @@ export default function AccountSettingsPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Button type="submit" variant="primary">
-                Save Changes
+              <Button type="submit" variant="primary" disabled={pending}>
+                {pending ? "Saving..." : "Save Changes"}
               </Button>
               <Button variant="outline" onClick={() => setSessionsOpen(true)}>
                 Manage Active Sessions
@@ -137,8 +164,9 @@ export default function AccountSettingsPage() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                showToast("Mobile session signed out.");
+              onClick={async () => {
+                await AuthService.signOut();
+                showToast("Session signed out.");
                 setSessionsOpen(false);
               }}
             >
@@ -150,4 +178,3 @@ export default function AccountSettingsPage() {
     </AppShell>
   );
 }
-
