@@ -1,9 +1,6 @@
 import {
-  MOCK_ACADEMIC_YEARS,
-  MOCK_ADMIN_USERS,
   MOCK_AUDIT_LOGS,
   MOCK_BOOKS,
-  MOCK_CLASSES,
   MOCK_COMPLAINTS,
   MOCK_ENQUIRIES,
   MOCK_EXAMS,
@@ -18,17 +15,9 @@ import {
   MOCK_ROUTES,
   MOCK_STAFF,
   MOCK_STUDENTS,
-  MOCK_SUBJECTS,
   MOCK_TEACHERS,
   MONTHLY_REVENUE_ATTENDANCE_CHART,
 } from "@/mocks/school.data";
-
-export const SchoolSetupService = {
-  listAcademicYears: async () => MOCK_ACADEMIC_YEARS,
-  listClasses: async () => MOCK_CLASSES,
-  listSubjects: async () => MOCK_SUBJECTS,
-  listAdminUsers: async () => MOCK_ADMIN_USERS,
-};
 
 export const StudentService = {
   list: async () => MOCK_STUDENTS,

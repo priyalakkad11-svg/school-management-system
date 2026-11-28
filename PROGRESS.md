@@ -24,7 +24,7 @@
 ## PHASE 5 (Supabase Integration Checklist)
 - [x] Foundation: Supabase clients (`browser`, `server`, `admin`), proxy session refresh, DB types, error mapper, server-side pagination/filter helpers, `check:mocks`
 - [x] 1. Auth & profiles (login for all roles, forgot/reset password, OTP via email, first-time password setup, sign out, role redirects)
-- [ ] 2. School setup (academic year, classes, sections, subjects, mappings, roles/permissions, users)
+- [x] 2. School setup (academic year, classes, sections, subjects, mappings, roles/permissions, users)
 - [ ] 3. Students & admissions & guardians
 - [ ] 4. Teachers, staff, payroll, leave
 - [ ] 5. Attendance & timetable

@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
-import { AcademicService, SchoolSetupService } from "@/services/school.service";
+import { AcademicService } from "@/services/school.service";
+import { listPublicCurriculumSubjects } from "@/services/setup-public.server";
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Academics & K-12 Curriculum",
@@ -12,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function AcademicsPage() {
   const [subjects, exams] = await Promise.all([
-    SchoolSetupService.listSubjects(),
+    listPublicCurriculumSubjects(),
     AcademicService.listExams(),
   ]);
 

@@ -18,6 +18,7 @@ const ROLE_ACCOUNTS = [
   { role: "teacher", label: "Teacher", email: "kavita.nair@greenwood.edu", expectedPath: "/teacher" },
   { role: "student", label: "Student", email: "aarav.sharma@student.greenwood.edu", expectedPath: "/student" },
   { role: "parent", label: "Parent", email: "rajesh.sharma@gmail.com", expectedPath: "/parent" },
+  { role: "staff", label: "Staff", email: "mohan.joshi@greenwood.edu", expectedPath: "/admin/staff" },
 ] as const;
 
 export default async function globalSetup(config: FullConfig) {

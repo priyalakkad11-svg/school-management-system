@@ -1,27 +1,79 @@
 "use client";
 
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
-import { Button, Card, Select, StatusBadge } from "@/components/ui/primitives";
+import { Button, Card, ErrorState, Select, Skeleton, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-
-const INITIAL_MAPPING = [
-  { id: "m1", subject: "Mathematics", code: "MATH-041", periods: "6 Periods", type: "Theory", mandatory: "Yes", mapped: true },
-  { id: "m2", subject: "Science (Phy/Chem/Bio)", code: "SCI-086", periods: "7 Periods", type: "Theory + Lab", mandatory: "Yes", mapped: true },
-  { id: "m3", subject: "English Lang & Lit", code: "ENG-184", periods: "5 Periods", type: "Theory", mandatory: "Yes", mapped: true },
-  { id: "m4", subject: "Computer Applications", code: "CA-165", periods: "4 Periods", type: "Lab Elective", mandatory: "Optional", mapped: true },
-  { id: "m5", subject: "French / Sanskrit", code: "LANG-018", periods: "3 Periods", type: "2nd Language", mandatory: "Choice", mapped: true },
-];
+import { SetupService } from "@/services/setup.service";
+import type { SubjectMappingRowDto } from "@/app/actions/setup.actions";
 
 export default function SubjectClassMappingPage() {
   const { showToast } = useToast();
-  const [cls, setCls] = React.useState("Class 10 (All Sections)");
-  const [year, setYear] = React.useState("AY 2026–27");
-  const [rows, setRows] = React.useState(INITIAL_MAPPING);
+  const [selectedYearId, setSelectedYearId] = React.useState<string | undefined>();
+  const [selectedClassId, setSelectedClassId] = React.useState<string | undefined>();
+  const [draftMapped, setDraftMapped] = React.useState<Record<string, boolean>>({});
+  const [saving, setSaving] = React.useState(false);
 
-  const toggleMapped = (id: string) => {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, mapped: !r.mapped } : r)));
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["setup-subject-mapping", selectedYearId ?? "default", selectedClassId ?? "default"],
+    queryFn: () =>
+      SetupService.getSubjectMappingContext({
+        academicYearId: selectedYearId,
+        classId: selectedClassId,
+      }),
+  });
+
+  const ctx = data?.ok ? data.data : undefined;
+  const years = ctx?.academicYears ?? [];
+  const classes = ctx?.classes ?? [];
+  const yearId = ctx?.selectedYearId ?? "";
+  const classId = ctx?.selectedClassId ?? "";
+
+  const rows: SubjectMappingRowDto[] = React.useMemo(
+    () =>
+      (ctx?.rows ?? []).map((r) => ({
+        ...r,
+        mapped:
+          `${yearId}:${classId}:${r.subjectId}` in draftMapped
+            ? draftMapped[`${yearId}:${classId}:${r.subjectId}`]
+            : r.mapped,
+      })),
+    [ctx, draftMapped, yearId, classId],
+  );
+
+  const toggleMapped = (subjectId: string, current: boolean) => {
+    setDraftMapped((prev) => ({ ...prev, [`${yearId}:${classId}:${subjectId}`]: !current }));
   };
+
+  const handleSave = async () => {
+    if (!yearId || !classId) return;
+    setSaving(true);
+    try {
+      const res = await SetupService.saveSubjectMappings({
+        academicYearId: yearId,
+        classId,
+        items: rows.map((r) => ({
+          subjectId: r.subjectId,
+          periodsPerWeek: r.periodsPerWeek,
+          isMandatory: r.isMandatory,
+          mapped: r.mapped,
+        })),
+      });
+      if (!res.ok) {
+        showToast(res.error ?? "Unable to save mapping.", "warning");
+        return;
+      }
+      const clsName = classes.find((c) => c.id === classId)?.name ?? "selected class";
+      showToast(`Saved subject mapping for ${clsName}.`);
+      setDraftMapped({});
+      await refetch();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const activeClassName = classes.find((c) => c.id === classId)?.name ?? "Selected Class";
 
   return (
     <AppShell
@@ -33,72 +85,82 @@ export default function SubjectClassMappingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:w-auto">
           <Select
             label="Select Class"
-            value={cls}
-            onChange={(e) => setCls(e.target.value)}
-            options={[
-              { label: "Class 10 (All Sections)", value: "Class 10 (All Sections)" },
-              { label: "Class 9 (All Sections)", value: "Class 9 (All Sections)" },
-              { label: "Class 12 (Science)", value: "Class 12 (Science)" },
-            ]}
+            value={classId}
+            onChange={(e) => {
+              setSelectedClassId(e.target.value);
+              setDraftMapped({});
+            }}
+            options={classes.map((c) => ({ label: c.name, value: c.id }))}
           />
           <Select
             label="Academic Year"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            options={[
-              { label: "AY 2026–27", value: "AY 2026–27" },
-              { label: "AY 2027–28 (Draft)", value: "AY 2027–28 (Draft)" },
-            ]}
+            value={yearId}
+            onChange={(e) => {
+              setSelectedYearId(e.target.value);
+              setDraftMapped({});
+            }}
+            options={years.map((y) => ({ label: y.name, value: y.id }))}
           />
         </div>
-        <Button
-          variant="primary"
-          onClick={() => showToast(`Saved subject mapping for ${cls} (${year}).`)}
-        >
-          Save Subject Mapping
+        <Button variant="primary" disabled={saving || isLoading} onClick={() => void handleSave()}>
+          {saving ? "Saving Mapping..." : "Save Subject Mapping"}
         </Button>
       </div>
 
-      <Card className="p-5 flex flex-col gap-4">
+      <Card className="p-5 flex flex-col gap-4 min-w-0">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-ink">Mapped Subjects for {cls}</h2>
+          <h2 className="text-base font-bold text-ink">Mapped Subjects for {activeClassName}</h2>
           <span className="text-xs text-ink-muted">{rows.length} entries</span>
         </div>
 
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Subject class mapping table">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-subtle border-b border-line">
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Subject</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Code</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Periods / Week</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Type</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Mandatory</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Mapped</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-subtle/60">
-                  <td className="py-3.5 px-4 text-sm font-semibold text-ink">{r.subject}</td>
-                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.code}</td>
-                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.periods}</td>
-                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.type}</td>
-                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.mandatory}</td>
-                  <td className="py-3.5 px-4">
-                    <button type="button" onClick={() => toggleMapped(r.id)} className="cursor-pointer rounded-full">
-                      <StatusBadge tone={r.mapped ? (r.mandatory === "Yes" ? "success" : "info") : "neutral"}>
-                        {r.mapped ? "✓ Mapped" : "Unmapped"}
-                      </StatusBadge>
-                    </button>
-                  </td>
+        {isLoading ? (
+          <Skeleton className="h-56 w-full" />
+        ) : !data?.ok ? (
+          <ErrorState
+            description={data?.error ?? "Unable to load curriculum mapping."}
+            onRetry={() => void refetch()}
+          />
+        ) : (
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Subject class mapping table">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-subtle border-b border-line">
+                  <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Subject</th>
+                  <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Code</th>
+                  <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Periods / Week</th>
+                  <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Type</th>
+                  <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Mandatory</th>
+                  <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Mapped</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {rows.map((r) => (
+                  <tr key={r.subjectId} className="hover:bg-subtle/60">
+                    <td className="py-3.5 px-4 text-sm font-semibold text-ink">{r.subject}</td>
+                    <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.code}</td>
+                    <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.periodsPerWeek} Periods</td>
+                    <td className="py-3.5 px-4 text-sm text-ink-secondary">{r.category}</td>
+                    <td className="py-3.5 px-4 text-sm text-ink-secondary">
+                      {r.isMandatory ? "Yes" : "Optional"}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <button
+                        type="button"
+                        onClick={() => toggleMapped(r.subjectId, r.mapped)}
+                        className="cursor-pointer rounded-full"
+                      >
+                        <StatusBadge tone={r.mapped ? (r.isMandatory ? "success" : "info") : "neutral"}>
+                          {r.mapped ? "✓ Mapped" : "Unmapped"}
+                        </StatusBadge>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </AppShell>
   );
 }
-

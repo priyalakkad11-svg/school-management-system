@@ -139,6 +139,51 @@ async function main() {
     record("[audit_logs] anon denied SELECT", (anonAudits?.length ?? 0) === 0);
   }
 
+  // --- Module 2: school_settings, academic_years, school_classes, subjects, csm, rbac ---
+  {
+    const { data: anonSettings } = await anonClient.from("school_settings").select("id");
+    record("[school_settings] anon denied SELECT", (anonSettings?.length ?? 0) === 0);
+
+    const { data: adminSettings } = await sessions.admin.client.from("school_settings").select("id");
+    record("[school_settings] admin reads row", (adminSettings?.length ?? 0) >= 1);
+
+    const { data: teacherClasses } = await sessions.teacher.client.from("school_classes").select("id");
+    record("[school_classes] authenticated teacher reads active classes", (teacherClasses?.length ?? 0) >= 1);
+
+    for (const role of ["teacher", "student", "parent", "staff"] as const) {
+      const { error: ayInsertErr } = await sessions[role].client.from("academic_years").insert({
+        code: `TEST-${role}`,
+        name: "Unauthorized Session",
+        start_date: "2028-04-01",
+        end_date: "2029-03-31",
+        start_label: "01 Apr 2028",
+        end_label: "31 Mar 2029",
+      });
+      record(`[academic_years] ${role} denied INSERT`, Boolean(ayInsertErr));
+
+      const { error: clsInsertErr } = await sessions[role].client.from("school_classes").insert({
+        code: `TEST-${role}`,
+        name: "Unauthorized Class",
+        grade_order: 1,
+        wing: "Test",
+      });
+      record(`[school_classes] ${role} denied INSERT`, Boolean(clsInsertErr));
+    }
+
+    const { data: staffRbac } = await sessions.staff.client.from("rbac_roles").select("id");
+    record("[rbac_roles] staff allowed SELECT", (staffRbac?.length ?? 0) >= 1);
+
+    for (const role of ["teacher", "student", "parent"] as const) {
+      const { data: deniedRbac } = await sessions[role].client.from("rbac_roles").select("id");
+      record(`[rbac_roles] ${role} denied SELECT`, (deniedRbac?.length ?? 0) === 0);
+    }
+
+    const { error: staffPermEditErr } = await sessions.staff.client
+      .from("rbac_roles")
+      .insert({ name: "Escalated Role" });
+    record("[rbac_roles] staff denied INSERT", Boolean(staffPermEditErr));
+  }
+
   const passed = results.filter((r) => r.passed).length;
   const failed = results.filter((r) => !r.passed).length;
   console.log(`RLS Matrix Summary: ${passed} passed, ${failed} failed (total ${results.length})`);

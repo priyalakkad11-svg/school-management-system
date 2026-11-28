@@ -84,6 +84,15 @@ export async function updateSession(request: NextRequest) {
   if (pathname.startsWith("/admin") && role !== "admin" && role !== "staff") {
     return NextResponse.redirect(new URL("/403", request.url));
   }
+  if (
+    role === "staff" &&
+    (pathname === "/admin" ||
+      pathname.startsWith("/admin/setup") ||
+      pathname.startsWith("/admin/audit-logs") ||
+      pathname.startsWith("/admin/system-settings"))
+  ) {
+    return NextResponse.redirect(new URL("/403", request.url));
+  }
   if (pathname.startsWith("/teacher") && role !== "teacher" && role !== "admin") {
     return NextResponse.redirect(new URL("/403", request.url));
   }
