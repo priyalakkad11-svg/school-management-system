@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { CalendarDays, CreditCard, MessageSquare } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, CalendarDays, CreditCard, MessageSquare } from "lucide-react";
 
 const AUTH_HIGHLIGHTS = [
   { icon: CalendarDays, label: "Attendance & timetable" },
@@ -9,6 +12,16 @@ const AUTH_HIGHLIGHTS = [
 ];
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(pathname === "/login" ? "/" : "/login");
+  };
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-surface text-ink">
       <aside className="bg-sidebar text-ink-on-dark lg:w-[40%] lg:min-w-[380px] lg:max-w-[560px] p-6 sm:p-10 lg:p-12 flex flex-col justify-between gap-8">
@@ -49,7 +62,22 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 bg-canvas flex items-center justify-center p-4 sm:p-8 lg:p-12">
-        <div className="w-full max-w-[480px] bg-surface border border-line rounded-xl shadow-modal p-6 sm:p-8">
+        <div className="w-full max-w-[480px] bg-surface border border-line rounded-xl shadow-modal p-6 sm:p-8 flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-line">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="min-h-11 px-3 inline-flex items-center gap-1.5 rounded-md border border-line bg-surface text-xs font-semibold text-ink-secondary hover:bg-subtle hover:text-ink cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{pathname === "/login" ? "Back to Home" : "Back"}</span>
+            </button>
+            {pathname !== "/login" ? (
+              <Link href="/login" className="text-xs font-semibold text-brand hover:underline">
+                Sign In
+              </Link>
+            ) : null}
+          </div>
           {children}
         </div>
       </main>

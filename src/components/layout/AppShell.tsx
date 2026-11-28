@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Award,
   Bell,
   BookOpen,
@@ -62,15 +63,61 @@ const PORTAL_BRANDING: Record<
   parent: { code: "PP", title: "Parent Portal", badgeTone: "bg-brand text-ink-on-dark" },
 };
 
+const PORTAL_ROOTS = new Set(["/admin", "/teacher", "/student", "/parent"]);
+
+function getFallbackBackHref(
+  pathname: string,
+  shellRole: "admin" | "teacher" | "student" | "parent",
+): string {
+  if (pathname.startsWith("/admin/setup/classes/")) return "/admin/setup/classes";
+  if (pathname.startsWith("/admin/setup/") && pathname !== "/admin/setup/school-profile") {
+    return "/admin/setup/school-profile";
+  }
+  if (pathname.startsWith("/admin/students/")) return "/admin/students";
+  if (pathname.startsWith("/admin/teachers/")) return "/admin/teachers";
+  if (pathname === "/admin/staff/salary-slip") return "/admin/staff/payroll";
+  if (pathname.startsWith("/admin/staff/")) return "/admin/staff";
+  if (pathname.startsWith("/admin/attendance/") && pathname !== "/admin/attendance/students") {
+    return "/admin/attendance/students";
+  }
+  if (pathname.startsWith("/admin/timetable/") && pathname !== "/admin/timetable/classes") {
+    return "/admin/timetable/classes";
+  }
+  if (pathname === "/admin/exams/report-card") return "/admin/exams/results";
+  if (pathname.startsWith("/admin/exams/")) return "/admin/exams";
+  if (pathname === "/admin/fees/receipt") return "/admin/fees/collect";
+  if (pathname.startsWith("/admin/fees/") && pathname !== "/admin/fees/structure") {
+    return "/admin/fees/structure";
+  }
+  if (pathname.startsWith("/admin/library/") && pathname !== "/admin/library/books") {
+    return "/admin/library/books";
+  }
+  if (pathname.startsWith("/admin/transport/") && pathname !== "/admin/transport/routes") {
+    return "/admin/transport/routes";
+  }
+  if (pathname.startsWith("/admin/hostel/") && pathname !== "/admin/hostel/rooms") {
+    return "/admin/hostel/rooms";
+  }
+  if (pathname.startsWith("/admin/communication/") && pathname !== "/admin/communication/notices") {
+    return "/admin/communication/notices";
+  }
+  if (pathname.startsWith("/admin/")) return "/admin";
+  if (pathname.startsWith("/teacher/")) return "/teacher";
+  if (pathname.startsWith("/student/")) return "/student";
+  if (pathname.startsWith("/parent/")) return "/parent";
+  return `/${shellRole}`;
+}
+
 export interface AppShellProps {
   role: PortalRole;
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  hideBack?: boolean;
   children: React.ReactNode;
 }
 
-export function AppShell({ role, title, subtitle, actions, children }: AppShellProps) {
+export function AppShell({ role, title, subtitle, actions, hideBack = false, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -94,6 +141,20 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
       return pathname === href;
     }
     return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const isPortalRoot = PORTAL_ROOTS.has(pathname);
+  const fallbackBackHref = React.useMemo(
+    () => getFallbackBackHref(pathname, shellRole),
+    [pathname, shellRole],
+  );
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push(fallbackBackHref);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -201,8 +262,8 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
       </Drawer>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-20 bg-surface border-b border-line h-[68px] px-4 sm:px-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="sticky top-0 z-20 bg-surface border-b border-line h-[68px] px-4 sm:px-6 flex items-center justify-between gap-3 print:hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
@@ -211,6 +272,18 @@ export function AppShell({ role, title, subtitle, actions, children }: AppShellP
             >
               <Menu className="w-5 h-5" />
             </button>
+            {!isPortalRoot && !hideBack ? (
+              <button
+                type="button"
+                onClick={handleBack}
+                aria-label="Back"
+                title="Go back"
+                className="min-h-11 min-w-11 lg:px-3 inline-flex items-center justify-center gap-1.5 rounded-md border border-line bg-surface text-ink-secondary hover:bg-subtle hover:text-ink cursor-pointer shrink-0 text-xs font-semibold transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span className="hidden lg:inline">Back</span>
+              </button>
+            ) : null}
             <div className="min-w-0">
               <h1 className="text-base sm:text-xl font-bold text-ink truncate">{title}</h1>
               {subtitle ? (

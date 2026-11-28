@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 
 const PUBLIC_NAV = [
@@ -15,6 +16,16 @@ const PUBLIC_NAV = [
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/");
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-ink">
@@ -93,7 +104,21 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        {pathname !== "/" ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 -mb-6 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="min-h-11 px-3.5 inline-flex items-center gap-2 rounded-md border border-line bg-surface text-xs font-semibold text-ink-secondary hover:bg-subtle hover:text-ink cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Back</span>
+            </button>
+          </div>
+        ) : null}
+        {children}
+      </main>
 
       <footer className="bg-sidebar text-ink-on-dark border-t border-sidebar-hover">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
