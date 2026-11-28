@@ -3,6 +3,7 @@ import type { PortalRole } from "@/lib/routes";
 export interface NavItemConfig {
   label: string;
   href: string;
+  moduleKey?: string;
   iconName:
     | "home"
     | "settings"
@@ -22,20 +23,33 @@ export interface NavItemConfig {
     | "help";
 }
 
+export const PLATFORM_NAV: NavItemConfig[] = [
+  { label: "Platform Dashboard", href: "/platform", iconName: "home" },
+  { label: "Schools Directory", href: "/platform/schools", iconName: "building" },
+  { label: "Create School", href: "/platform/schools/new", iconName: "briefcase" },
+  { label: "Plans & Pricing", href: "/platform/plans", iconName: "award" },
+  { label: "Subscriptions", href: "/platform/subscriptions", iconName: "calendar" },
+  { label: "Invoices & Payments", href: "/platform/invoices", iconName: "creditCard" },
+  { label: "Announcements", href: "/platform/announcements", iconName: "bell" },
+  { label: "Support Tickets", href: "/platform/tickets", iconName: "help" },
+  { label: "Platform Audit Logs", href: "/platform/audit-logs", iconName: "fileText" },
+  { label: "Settings & Demo", href: "/platform/settings", iconName: "settings" },
+];
+
 export const ADMIN_NAV: NavItemConfig[] = [
   { label: "Dashboard", href: "/admin", iconName: "home" },
-  { label: "School Setup", href: "/admin/setup/school-profile", iconName: "settings" },
-  { label: "Students", href: "/admin/students", iconName: "users" },
-  { label: "Teachers & Staff", href: "/admin/teachers", iconName: "briefcase" },
-  { label: "Attendance", href: "/admin/attendance/students", iconName: "checkSquare" },
-  { label: "Timetable", href: "/admin/timetable/classes", iconName: "calendar" },
-  { label: "Exams & Results", href: "/admin/exams", iconName: "award" },
-  { label: "Fees", href: "/admin/fees/structure", iconName: "creditCard" },
-  { label: "Library", href: "/admin/library/books", iconName: "book" },
-  { label: "Transport", href: "/admin/transport/routes", iconName: "bus" },
-  { label: "Hostel", href: "/admin/hostel/rooms", iconName: "building" },
-  { label: "Communication", href: "/admin/communication/notices", iconName: "mail" },
-  { label: "Reports & Audit", href: "/admin/reports", iconName: "fileText" },
+  { label: "School Setup", href: "/admin/setup/school-profile", moduleKey: "setup", iconName: "settings" },
+  { label: "Students", href: "/admin/students", moduleKey: "students", iconName: "users" },
+  { label: "Teachers & Staff", href: "/admin/teachers", moduleKey: "teachers", iconName: "briefcase" },
+  { label: "Attendance", href: "/admin/attendance/students", moduleKey: "attendance", iconName: "checkSquare" },
+  { label: "Timetable", href: "/admin/timetable/classes", moduleKey: "timetable", iconName: "calendar" },
+  { label: "Exams & Results", href: "/admin/exams", moduleKey: "exams", iconName: "award" },
+  { label: "Fees", href: "/admin/fees/structure", moduleKey: "fees", iconName: "creditCard" },
+  { label: "Library", href: "/admin/library/books", moduleKey: "library", iconName: "book" },
+  { label: "Transport", href: "/admin/transport/routes", moduleKey: "transport", iconName: "bus" },
+  { label: "Hostel", href: "/admin/hostel/rooms", moduleKey: "hostel", iconName: "building" },
+  { label: "Communication", href: "/admin/communication/notices", moduleKey: "communication", iconName: "mail" },
+  { label: "Reports & Audit", href: "/admin/reports", moduleKey: "reports", iconName: "fileText" },
 ];
 
 export const TEACHER_NAV: NavItemConfig[] = [
@@ -79,8 +93,10 @@ export const PARENT_NAV: NavItemConfig[] = [
   { label: "Apply Leave", href: "/parent/leave", iconName: "calendar" },
 ];
 
-export function getNavForRole(role: PortalRole | "staff"): NavItemConfig[] {
+export function getNavForRole(role: PortalRole | "staff" | "super_admin"): NavItemConfig[] {
   switch (role) {
+    case "super_admin":
+      return PLATFORM_NAV;
     case "teacher":
       return TEACHER_NAV;
     case "student":

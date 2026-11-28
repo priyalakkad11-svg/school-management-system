@@ -39,16 +39,16 @@
 - [x] A1: `schools` table + `school_id` NOT NULL (FK + indexes) across all tenant tables + backfill into Demo School + Storage `<school_id>/` prefixes
 - [x] A2: Security-definer helpers (`current_school_id`, `current_role`, `is_super_admin`, `has_permission`, `school_allows_write`) + tenant-scoped RLS on all tables
 - [x] A3: Roles (`super_admin`, `school_admin`, `principal`, `teacher`, `student`, `parent`, `staff` sub-roles), DB-backed permissions, proxy + staff RBAC tightening
-- [ ] A4: `super_admin` server-only bootstrap script (`SUPER_ADMIN_EMAIL` + runtime password), escalation trigger lock, TOTP MFA enforcement *(bootstrap script & trigger done; TOTP AAL2 route enforcement follows with `/platform` UI in B)*
+- [x] A4: `super_admin` server-only bootstrap script (`SUPER_ADMIN_EMAIL` + runtime password), escalation trigger lock, TOTP MFA enforcement (`/platform/mfa` + AAL2 proxy check)
 - [x] A5: `pnpm test:tenant` (introspects all `school_id` tables + cross-tenant isolation across 2 schools + Storage) & extended `pnpm test:rls` (`0` failures)
 
 ### B. Platform / Super Admin (`111+` NEW screens — not in Figma)
-- [ ] B1: Plans, Slabs (INR per student/month), Coupons, Invoices (gapless FY numbering + GST/GSTIN), Manual Payments & Subscriptions schema + pricing calculator + proration/credit notes
-- [ ] B2: Atomic `create_school` server operation + Credentials Handover sheet (one-time copy, forced first-login password setup, reset/lock/unlock)
-- [ ] B3: Dual login (`school_code + user_id + password` & `email + password`) + DB-backed rate limits/lockout + per-school branding CSS vars
-- [ ] B4: Super Admin Screens `111–123`: Platform Dashboard, Schools List, Create School Wizard, School Detail tabs, Plans/Pricing, Subscriptions, Invoices & Print, Handover Sheet, Platform Announcements, Support Tickets, Platform Audit Logs, Platform Settings & Demo School Reset, Audited Support Access ("View as School")
-- [ ] B5: Usage metering (80% warn, 100% block), module toggles (sidebar + proxy + public), per-school settings & holidays, Demo School reset (`is_demo = true` excluded from MRR)
-- [ ] B6: Public per-school microsites `/s/[school_code]` (home, admissions, notices, events, contact + metadata, sitemap, JSON-LD)
+- [x] B1: Plans, Slabs (INR per student/month), Coupons, Invoices (gapless FY numbering + GST/GSTIN), Manual Payments & Subscriptions schema + pricing calculator + proration/credit notes (`NEW — not in Figma`)
+- [x] B2: Atomic `createSchoolAtomicAction` server operation + Printable Credential Handover sheet (`/platform/schools/new` -> Handover 118, one-time copy, forced first-login password setup, reset/lock/unlock) (`NEW — not in Figma`)
+- [x] B3: Dual login (`school_code + user_id + password` & `email + password`) + DB-backed rate limits/lockout (`auth_rate_limits`) + per-school branding (`NEW — not in Figma`)
+- [x] B4: Super Admin Screens `111–123`: Platform Dashboard, Schools List, Create School Wizard, School Detail tabs, Plans/Pricing, Subscriptions, Invoices & Print, Handover Sheet, Platform Announcements, Support Tickets, Platform Audit Logs, Platform Settings & Demo School Reset, Audited Support Access ("View as School") (`NEW — not in Figma`)
+- [x] B5: Usage metering (80% warn, 100% block), module toggles (sidebar + proxy + public), per-school settings & holidays, Demo School reset (`is_demo = true` excluded from MRR)
+- [x] B6: Public per-school microsites `/s/[school_code]` (home, admissions, notices, events, contact + metadata, sitemap, JSON-LD) (`NEW — not in Figma`)
 
 ### C. School Onboarding & Academic Structure
 - [ ] C1: Persisted School Admin onboarding checklist (`school_onboarding`)

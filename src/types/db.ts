@@ -123,6 +123,30 @@ export type Database = {
           },
         ]
       }
+      auth_rate_limits: {
+        Row: {
+          attempts: number
+          bucket_key: string
+          first_attempt_at: string
+          locked_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          bucket_key: string
+          first_attempt_at?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          bucket_key?: string
+          first_attempt_at?: string
+          locked_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       class_subject_mappings: {
         Row: {
           academic_year_id: string
@@ -190,6 +214,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_announcements: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          published_at: string
+          severity: string
+          target_status: string[]
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          published_at?: string
+          severity?: string
+          target_status?: string[]
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          published_at?: string
+          severity?: string
+          target_status?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          company_address: string
+          company_name: string
+          default_grace_days: number
+          default_gst_pct: number
+          default_trial_days: number
+          gstin: string
+          owner_name: string
+          platform_name: string
+          singleton_key: string
+          support_email: string
+          updated_at: string
+        }
+        Insert: {
+          company_address?: string
+          company_name?: string
+          default_grace_days?: number
+          default_gst_pct?: number
+          default_trial_days?: number
+          gstin?: string
+          owner_name?: string
+          platform_name?: string
+          singleton_key?: string
+          support_email?: string
+          updated_at?: string
+        }
+        Update: {
+          company_address?: string
+          company_name?: string
+          default_grace_days?: number
+          default_gst_pct?: number
+          default_trial_days?: number
+          gstin?: string
+          owner_name?: string
+          platform_name?: string
+          singleton_key?: string
+          support_email?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -376,6 +475,332 @@ export type Database = {
           },
         ]
       }
+      saas_coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_redemptions: number | null
+          redemption_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          redemption_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_redemptions?: number | null
+          redemption_count?: number
+        }
+        Relationships: []
+      }
+      saas_credit_notes: {
+        Row: {
+          amount_inr: number
+          created_at: string
+          credit_note_number: string
+          financial_year: string
+          id: string
+          invoice_id: string
+          issued_at: string
+          reason: string
+          school_id: string
+        }
+        Insert: {
+          amount_inr: number
+          created_at?: string
+          credit_note_number: string
+          financial_year: string
+          id?: string
+          invoice_id: string
+          issued_at?: string
+          reason: string
+          school_id: string
+        }
+        Update: {
+          amount_inr?: number
+          created_at?: string
+          credit_note_number?: string
+          financial_year?: string
+          id?: string
+          invoice_id?: string
+          issued_at?: string
+          reason?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "saas_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_credit_notes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_invoice_sequences: {
+        Row: {
+          financial_year: string
+          last_number: number
+        }
+        Insert: {
+          financial_year: string
+          last_number?: number
+        }
+        Update: {
+          financial_year?: string
+          last_number?: number
+        }
+        Relationships: []
+      }
+      saas_invoices: {
+        Row: {
+          amount_paid_inr: number
+          created_at: string
+          discount_inr: number
+          due_date: string
+          financial_year: string
+          gst_amount_inr: number
+          gst_pct: number
+          id: string
+          invoice_number: string
+          issued_at: string
+          line_items: Json
+          notes: string
+          school_id: string
+          status: string
+          subscription_id: string | null
+          subtotal_inr: number
+          total_inr: number
+        }
+        Insert: {
+          amount_paid_inr?: number
+          created_at?: string
+          discount_inr?: number
+          due_date?: string
+          financial_year: string
+          gst_amount_inr?: number
+          gst_pct?: number
+          id?: string
+          invoice_number: string
+          issued_at?: string
+          line_items?: Json
+          notes?: string
+          school_id: string
+          status?: string
+          subscription_id?: string | null
+          subtotal_inr?: number
+          total_inr?: number
+        }
+        Update: {
+          amount_paid_inr?: number
+          created_at?: string
+          discount_inr?: number
+          due_date?: string
+          financial_year?: string
+          gst_amount_inr?: number
+          gst_pct?: number
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          line_items?: Json
+          notes?: string
+          school_id?: string
+          status?: string
+          subscription_id?: string | null
+          subtotal_inr?: number
+          total_inr?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_invoices_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "school_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_notification_log: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          recipient_email: string
+          school_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          recipient_email: string
+          school_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          recipient_email?: string
+          school_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_notification_log_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_payments: {
+        Row: {
+          amount_inr: number
+          created_at: string
+          id: string
+          invoice_id: string
+          method: string
+          notes: string
+          paid_at: string
+          recorded_by: string | null
+          reference_no: string
+          school_id: string
+        }
+        Insert: {
+          amount_inr: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method: string
+          notes?: string
+          paid_at?: string
+          recorded_by?: string | null
+          reference_no: string
+          school_id: string
+        }
+        Update: {
+          amount_inr?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: string
+          notes?: string
+          paid_at?: string
+          recorded_by?: string | null
+          reference_no?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "saas_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saas_payments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          enabled_modules: string[]
+          gst_pct: number
+          id: string
+          is_active: boolean
+          max_staff: number
+          max_storage_mb: number
+          max_students: number
+          max_teachers: number
+          name: string
+          setup_fee_inr: number
+          slabs: Json
+          updated_at: string
+          yearly_discount_pct: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string
+          enabled_modules?: string[]
+          gst_pct?: number
+          id?: string
+          is_active?: boolean
+          max_staff?: number
+          max_storage_mb?: number
+          max_students?: number
+          max_teachers?: number
+          name: string
+          setup_fee_inr?: number
+          slabs?: Json
+          updated_at?: string
+          yearly_discount_pct?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          enabled_modules?: string[]
+          gst_pct?: number
+          id?: string
+          is_active?: boolean
+          max_staff?: number
+          max_storage_mb?: number
+          max_students?: number
+          max_teachers?: number
+          name?: string
+          setup_fee_inr?: number
+          slabs?: Json
+          updated_at?: string
+          yearly_discount_pct?: number
+        }
+        Relationships: []
+      }
       school_classes: {
         Row: {
           capacity: number
@@ -438,6 +863,41 @@ export type Database = {
           },
         ]
       }
+      school_holidays: {
+        Row: {
+          category: string
+          created_at: string
+          holiday_date: string
+          id: string
+          school_id: string
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          holiday_date: string
+          id?: string
+          school_id: string
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          holiday_date?: string
+          id?: string
+          school_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_holidays_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_settings: {
         Row: {
           address: string
@@ -492,6 +952,82 @@ export type Database = {
             foreignKeyName: "school_settings_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_subscriptions: {
+        Row: {
+          billing_cycle: string
+          coupon_id: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          custom_limits: Json | null
+          grace_ends_at: string | null
+          id: string
+          monthly_rate_inr: number
+          plan_id: string
+          school_id: string
+          status: string
+          student_count_tier: number
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          coupon_id?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          custom_limits?: Json | null
+          grace_ends_at?: string | null
+          id?: string
+          monthly_rate_inr?: number
+          plan_id: string
+          school_id: string
+          status?: string
+          student_count_tier?: number
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          coupon_id?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          custom_limits?: Json | null
+          grace_ends_at?: string | null
+          id?: string
+          monthly_rate_inr?: number
+          plan_id?: string
+          school_id?: string
+          status?: string
+          student_count_tier?: number
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_subscriptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "saas_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "saas_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_subscriptions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -657,11 +1193,88 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          priority: string
+          resolution_notes: string
+          school_id: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          priority?: string
+          resolution_notes?: string
+          school_id: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          priority?: string
+          resolution_notes?: string
+          school_id?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_platform_dashboard_metrics: {
+        Args: never
+        Returns: {
+          active_schools: number
+          arr_inr: number
+          mrr_inr: number
+          renewals_due_30d: number
+          suspended_schools: number
+          total_real_schools: number
+          total_real_students: number
+          trial_schools: number
+        }[]
+      }
+      get_school_usage_summary: {
+        Args: { p_school_id: string }
+        Returns: {
+          max_staff: number
+          max_storage_mb: number
+          max_students: number
+          max_teachers: number
+          staff_count: number
+          storage_bytes: number
+          students_count: number
+          teachers_count: number
+          users_count: number
+        }[]
+      }
       get_tenant_rls_audit: {
         Args: never
         Returns: {
@@ -671,6 +1284,8 @@ export type Database = {
           table_name: string
         }[]
       }
+      next_saas_credit_note_number: { Args: { p_fy: string }; Returns: string }
+      next_saas_invoice_number: { Args: { p_fy: string }; Returns: string }
     }
     Enums: {
       account_status: "Active" | "Suspended"

@@ -13,6 +13,7 @@ export const userRoleSchema = z.enum([
 
 export const loginSchema = z.object({
   role: userRoleSchema,
+  schoolCode: z.string().trim().max(24).optional(),
   identifier: z.string().min(3, "Enter a valid email or ID"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   rememberDevice: z.boolean().default(true),

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSchoolAdminRole, ROLE_HOME } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/errors";
+import { checkAndConsumeRateLimit, resetRateLimitBucket } from "@/lib/rate-limit";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -37,17 +38,49 @@ const updateAccountSchema = z.object({
   newPassword: z.string().optional(),
 });
 
-async function resolveEmailFromIdentifier(identifier: string): Promise<string | null> {
+async function resolveEmailFromIdentifier(
+  identifier: string,
+  schoolCode?: string,
+): Promise<string | null> {
   const trimmed = identifier.trim();
   if (trimmed.includes("@")) {
     return trimmed.toLowerCase();
   }
+
+  let parsedSchoolCode = schoolCode?.trim().toUpperCase() || "";
+  let userCode = trimmed;
+  const colonOrSlash = trimmed.match(/^([A-Za-z0-9]+)[:/](.+)$/);
+  if (colonOrSlash) {
+    parsedSchoolCode = colonOrSlash[1].toUpperCase();
+    userCode = colonOrSlash[2].trim();
+  }
+
   const admin = createAdminClient();
+  if (parsedSchoolCode) {
+    const { data: school } = await admin
+      .from("schools")
+      .select("id")
+      .eq("school_code", parsedSchoolCode)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!school) return null;
+
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("email")
+      .eq("school_id", school.id)
+      .ilike("user_code", userCode)
+      .is("deleted_at", null)
+      .maybeSingle();
+    return prof?.email ?? null;
+  }
+
   const { data } = await admin
     .from("profiles")
     .select("email")
-    .ilike("user_code", trimmed)
+    .ilike("user_code", userCode)
     .is("deleted_at", null)
+    .limit(1)
     .maybeSingle();
 
   return data?.email ?? null;
@@ -55,6 +88,90 @@ async function resolveEmailFromIdentifier(identifier: string): Promise<string | 
 
 function hashSecurityAnswer(answer: string): string {
   return crypto.createHash("sha256").update(answer.trim().toLowerCase()).digest("hex");
+}
+
+export async function getSchoolPublicBrandingAction(schoolCode?: string) {
+  if (!schoolCode?.trim()) return null;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("schools")
+    .select("id, school_code, name, board, accent_color, logo_path, status")
+    .eq("school_code", schoolCode.trim().toUpperCase())
+    .is("deleted_at", null)
+    .maybeSingle();
+  return data ?? null;
+}
+
+export async function getShellTenantContextAction() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role, school_id, sub_role")
+    .eq("id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!profile) return null;
+
+  let activeSchoolId = profile.school_id;
+  let supportSession: {
+    id: string;
+    schoolCode: string;
+    schoolName: string;
+    reason: string;
+    readOnly: boolean;
+  } | null = null;
+
+  if (profile.role === "super_admin") {
+    const { data: ss } = await admin
+      .from("support_sessions")
+      .select("id, school_id, reason, read_only, schools(school_code, name)")
+      .eq("super_admin_id", user.id)
+      .is("ended_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ss) {
+      activeSchoolId = ss.school_id;
+      const sch = Array.isArray(ss.schools) ? ss.schools[0] : ss.schools;
+      supportSession = {
+        id: ss.id,
+        schoolCode: sch?.school_code ?? "SCHOOL",
+        schoolName: sch?.name ?? "School",
+        reason: ss.reason,
+        readOnly: ss.read_only,
+      };
+    }
+  }
+
+  const { data: school } = await admin
+    .from("schools")
+    .select("id, school_code, name, status, is_demo, enabled_modules, accent_color")
+    .eq("id", activeSchoolId)
+    .maybeSingle();
+
+  return {
+    role: profile.role,
+    subRole: profile.sub_role,
+    school: school
+      ? {
+          id: school.id,
+          schoolCode: school.school_code,
+          name: school.name,
+          status: school.status,
+          isDemo: school.is_demo,
+          enabledModules: school.enabled_modules,
+          accentColor: school.accent_color,
+        }
+      : null,
+    supportSession,
+  };
 }
 
 export async function signInAction(
@@ -65,7 +182,21 @@ export async function signInAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid login details." };
   }
 
-  const email = await resolveEmailFromIdentifier(parsed.data.identifier);
+  const rateKey = `login:${parsed.data.schoolCode?.toUpperCase() || "ANY"}:${parsed.data.identifier.trim().toLowerCase()}`;
+  const rate = await checkAndConsumeRateLimit({
+    bucketKey: rateKey,
+    maxAttempts: 8,
+    windowMinutes: 15,
+    lockMinutes: 15,
+  });
+  if (!rate.allowed) {
+    return {
+      ok: false,
+      error: "Too many sign-in attempts. Please wait 15 minutes before trying again.",
+    };
+  }
+
+  const email = await resolveEmailFromIdentifier(parsed.data.identifier, parsed.data.schoolCode);
   if (!email) {
     return { ok: false, error: "Invalid email/ID or password." };
   }
@@ -77,8 +208,10 @@ export async function signInAction(
   });
 
   if (error || !data.user) {
-    return { ok: false, error: getErrorMessage(error, "Invalid email/ID or password.") };
+    return { ok: false, error: "Invalid email/ID or password." };
   }
+
+  await resetRateLimitBucket(rateKey);
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")

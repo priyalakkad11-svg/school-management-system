@@ -2,11 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Button, Checkbox, Input } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
 import { DEMO_USERS } from "@/lib/auth";
+import { getSchoolPublicBrandingAction } from "@/app/actions/auth.actions";
 import { AuthService } from "@/services/auth.service";
 import type { PortalLoginRole } from "@/types/domain";
 import { cn } from "@/lib/utils";
@@ -27,19 +28,31 @@ const ROLE_BUTTON_LABEL: Record<PortalLoginRole, string> = {
   staff: "Sign In to Staff Portal",
 };
 
-export default function LoginPage() {
+function LoginFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialSchool = searchParams.get("school")?.toUpperCase() ?? "";
   const { showToast } = useToast();
   const [selectedRole, setSelectedRole] = React.useState<PortalLoginRole>("admin");
+  const [schoolCode, setSchoolCode] = React.useState(initialSchool);
+  const [showSchoolCodeInput, setShowSchoolCodeInput] = React.useState(Boolean(initialSchool));
+  const [schoolBranding, setSchoolBranding] = React.useState<{ name: string; board: string; school_code: string } | null>(null);
   const [identifier, setIdentifier] = React.useState(DEMO_USERS.admin.email);
   const [password, setPassword] = React.useState("");
   const [remember, setRemember] = React.useState(true);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (!initialSchool) return;
+    void getSchoolPublicBrandingAction(initialSchool).then((res) => {
+      if (res) setSchoolBranding({ name: res.name, board: res.board, school_code: res.school_code });
+    });
+  }, [initialSchool]);
+
   const handleRoleChange = (role: PortalLoginRole) => {
     setSelectedRole(role);
-    setIdentifier(DEMO_USERS[role].email);
+    setIdentifier(schoolCode ? "" : DEMO_USERS[role].email);
     setError(null);
   };
 
@@ -54,6 +67,7 @@ export default function LoginPage() {
     try {
       const res = await AuthService.signInWithCredentials({
         role: selectedRole,
+        schoolCode: schoolCode.trim() || undefined,
         identifier,
         password,
         rememberDevice: remember,
@@ -74,9 +88,13 @@ export default function LoginPage() {
     <AuthLayout>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <div className="flex flex-col gap-1.5">
-          <h2 className="text-2xl font-bold text-ink">Sign in to EduCore</h2>
+          <h2 className="text-2xl font-bold text-ink">
+            {schoolBranding ? schoolBranding.name : "Sign in to EduCore"}
+          </h2>
           <p className="text-sm text-ink-secondary">
-            Select your portal role and enter your credentials
+            {schoolBranding
+              ? `${schoolBranding.board} · School Code ${schoolBranding.school_code}`
+              : "Select your portal role and enter your credentials"}
           </p>
         </div>
 
@@ -106,12 +124,23 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {showSchoolCodeInput ? (
+          <Input
+            label="School Code"
+            type="text"
+            value={schoolCode}
+            onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
+            placeholder="e.g. GIA01"
+            autoComplete="organization"
+          />
+        ) : null}
+
         <Input
           label="Email or Admission / Employee ID"
           type="text"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
-          placeholder="admin@greenwood.edu"
+          placeholder={schoolCode ? `${schoolCode}-ADM-01` : "admin@greenwood.edu"}
           autoComplete="username"
         />
 
@@ -132,9 +161,18 @@ export default function LoginPage() {
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Checkbox label="Remember this device" checked={remember} onChange={setRemember} />
-          <Link href="/forgot-password" className="text-xs font-semibold text-brand hover:underline">
-            Forgot Password?
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowSchoolCodeInput((prev) => !prev)}
+              className="text-xs font-medium text-ink-secondary hover:text-ink cursor-pointer"
+            >
+              {showSchoolCodeInput ? "Hide School Code" : "Use School Code"}
+            </button>
+            <Link href="/forgot-password" className="text-xs font-semibold text-brand hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
         </div>
 
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={pending}>
@@ -149,6 +187,14 @@ export default function LoginPage() {
         </div>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginFormInner />
+    </React.Suspense>
   );
 }
 

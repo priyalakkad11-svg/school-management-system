@@ -12,6 +12,8 @@ export const config = {
     "/otp-verification",
     "/reset-password",
     "/setup-password",
+    "/platform",
+    "/platform/:path*",
     "/admin/:path*",
     "/teacher/:path*",
     "/student/:path*",

@@ -110,7 +110,47 @@ export async function updateSession(request: NextRequest) {
     if (role !== "super_admin") {
       return NextResponse.redirect(new URL("/403", request.url));
     }
+    if (pathname !== "/platform/mfa") {
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData && aalData.nextLevel === "aal2" && aalData.currentLevel !== "aal2") {
+        return NextResponse.redirect(new URL("/platform/mfa", request.url));
+      }
+    }
     return supabaseResponse;
+  }
+
+  // Enforce school lifecycle status (suspended/cancelled) & module feature flags for tenant routes
+  if (role !== "super_admin" && !matchesPrefix(pathname, "/status-errors")) {
+    const { data: schoolRow } = await supabase
+      .from("schools")
+      .select("status, enabled_modules")
+      .limit(1)
+      .maybeSingle();
+
+    if (schoolRow && (schoolRow.status === "suspended" || schoolRow.status === "cancelled")) {
+      return NextResponse.redirect(new URL("/status-errors?reason=suspended", request.url));
+    }
+
+    if (schoolRow?.enabled_modules && matchesPrefix(pathname, "/admin")) {
+      const enabled = new Set(schoolRow.enabled_modules);
+      const modulePrefixMap: Array<[string, string]> = [
+        ["/admin/library", "library"],
+        ["/admin/transport", "transport"],
+        ["/admin/hostel", "hostel"],
+        ["/admin/fees", "fees"],
+        ["/admin/exams", "exams"],
+        ["/admin/attendance", "attendance"],
+        ["/admin/timetable", "timetable"],
+        ["/admin/communication", "communication"],
+        ["/admin/reports", "reports"],
+      ];
+      const blocked = modulePrefixMap.find(
+        ([prefix, mod]) => matchesPrefix(pathname, prefix) && !enabled.has(mod),
+      );
+      if (blocked) {
+        return NextResponse.redirect(new URL("/403", request.url));
+      }
+    }
   }
 
   // Super admin may view tenant portals ONLY during an active audited support session.

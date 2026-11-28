@@ -1,4 +1,4 @@
-export type PortalRole = "public" | "auth" | "admin" | "teacher" | "student" | "parent" | "common";
+export type PortalRole = "public" | "auth" | "admin" | "teacher" | "student" | "parent" | "common" | "super_admin";
 
 export type ScreenModule =
   | "public-auth"

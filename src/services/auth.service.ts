@@ -72,12 +72,14 @@ export const AuthService = {
 
   async signInWithCredentials(params: {
     role: UserRole;
+    schoolCode?: string;
     identifier: string;
     password: string;
     rememberDevice?: boolean;
   }): Promise<{ ok: boolean; user?: SessionUser; redirectTo?: string; error?: string }> {
     const res = await signInAction({
       role: params.role,
+      schoolCode: params.schoolCode,
       identifier: params.identifier,
       password: params.password,
       rememberDevice: params.rememberDevice ?? true,

@@ -27,9 +27,11 @@ import {
   Users,
 } from "lucide-react";
 import { AuthService } from "@/services/auth.service";
+import { getShellTenantContextAction } from "@/app/actions/auth.actions";
+import { endSupportSessionAction } from "@/app/actions/platform.actions";
 import { DEMO_USERS } from "@/lib/auth";
 import { getNavForRole, type NavItemConfig } from "@/lib/navigation";
-import { Avatar } from "@/components/ui/primitives";
+import { Avatar, Button } from "@/components/ui/primitives";
 import { Drawer } from "@/components/ui/overlays";
 import { cn } from "@/lib/utils";
 import type { PortalRole } from "@/lib/routes";
@@ -54,21 +56,23 @@ const ICONS: Record<NavItemConfig["iconName"], React.ComponentType<{ className?:
 };
 
 const PORTAL_BRANDING: Record<
-  "admin" | "teacher" | "student" | "parent",
+  "admin" | "teacher" | "student" | "parent" | "super_admin",
   { code: string; title: string; badgeTone: string }
 > = {
+  super_admin: { code: "SA", title: "EduCore Platform", badgeTone: "bg-brand text-ink-on-dark" },
   admin: { code: "EC", title: "EduCore Admin", badgeTone: "bg-brand text-ink-on-dark" },
   teacher: { code: "TP", title: "Teacher Portal", badgeTone: "bg-accent text-ink-on-dark" },
   student: { code: "SP", title: "Student Portal", badgeTone: "bg-brand text-ink-on-dark" },
   parent: { code: "PP", title: "Parent Portal", badgeTone: "bg-brand text-ink-on-dark" },
 };
 
-const PORTAL_ROOTS = new Set(["/admin", "/teacher", "/student", "/parent"]);
+const PORTAL_ROOTS = new Set(["/platform", "/admin", "/teacher", "/student", "/parent"]);
 
 function getFallbackBackHref(
   pathname: string,
-  shellRole: "admin" | "teacher" | "student" | "parent",
+  shellRole: "admin" | "teacher" | "student" | "parent" | "super_admin",
 ): string {
+  if (pathname.startsWith("/platform/")) return "/platform";
   if (pathname.startsWith("/admin/setup/classes/")) return "/admin/setup/classes";
   if (pathname.startsWith("/admin/setup/") && pathname !== "/admin/setup/school-profile") {
     return "/admin/setup/school-profile";
@@ -122,38 +126,105 @@ export function AppShell({ role, title, subtitle, actions, hideBack = false, chi
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [tenantCtx, setTenantCtx] = React.useState<Awaited<
+    ReturnType<typeof getShellTenantContextAction>
+  >>(null);
+  const [endingSupport, setEndingSupport] = React.useState(false);
 
-  const fallbackShellRole: "admin" | "teacher" | "student" | "parent" =
-    role === "teacher" || role === "student" || role === "parent" ? role : "admin";
+  React.useEffect(() => {
+    let active = true;
+    void getShellTenantContextAction().then((ctx) => {
+      if (active && ctx) setTenantCtx(ctx);
+    });
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  const fallbackShellRole: "admin" | "teacher" | "student" | "parent" | "super_admin" =
+    role === "super_admin" || role === "teacher" || role === "student" || role === "parent"
+      ? role
+      : "admin";
 
   const user = React.useSyncExternalStore(
     AuthService.subscribe,
     AuthService.getCurrentClientUser,
-    () => DEMO_USERS[fallbackShellRole],
+    () =>
+      fallbackShellRole === "super_admin"
+        ? {
+            id: "PLATFORM-01",
+            name: "Priya Lakkad",
+            email: "superadmin@educore.in",
+            role: "super_admin" as const,
+            initials: "PL",
+            subtitle: "Platform Owner",
+          }
+        : DEMO_USERS[fallbackShellRole],
   );
 
-  const shellRole: "admin" | "teacher" | "student" | "parent" =
+  const shellRole: "admin" | "teacher" | "student" | "parent" | "super_admin" =
     role === "common"
-      ? user.role === "teacher" || user.role === "student" || user.role === "parent"
-        ? user.role
-        : "admin"
+      ? user.role === "super_admin"
+        ? "super_admin"
+        : user.role === "teacher" || user.role === "student" || user.role === "parent"
+          ? user.role
+          : "admin"
       : fallbackShellRole;
 
-  const navRole: PortalRole | "staff" =
+  const navRole: PortalRole | "staff" | "super_admin" =
     role === "common"
-      ? user.role === "teacher" || user.role === "student" || user.role === "parent" || user.role === "staff"
+      ? user.role === "super_admin" ||
+        user.role === "teacher" ||
+        user.role === "student" ||
+        user.role === "parent" ||
+        user.role === "staff"
         ? user.role
         : "admin"
       : role;
-  const navItems = React.useMemo(() => getNavForRole(navRole), [navRole]);
-  const branding = PORTAL_BRANDING[shellRole];
+
+  const rawNavItems = getNavForRole(navRole);
+  const enabledModules = tenantCtx?.school?.enabledModules;
+  const navItems =
+    enabledModules && navRole === "admin"
+      ? rawNavItems.filter((item) => !item.moduleKey || enabledModules.includes(item.moduleKey))
+      : rawNavItems;
+
+  const baseBranding = PORTAL_BRANDING[shellRole];
+  const branding =
+    shellRole !== "super_admin" &&
+    tenantCtx?.school?.schoolCode &&
+    tenantCtx.school.schoolCode !== "GIA01"
+      ? {
+          ...baseBranding,
+          code: tenantCtx.school.schoolCode.slice(0, 3),
+          title: tenantCtx.school.name,
+        }
+      : baseBranding;
+
   const mobileBottomItems = navItems.slice(0, 4);
 
   const isNavActive = (href: string) => {
-    if (href === "/admin" || href === "/teacher" || href === "/student" || href === "/parent") {
+    if (
+      href === "/platform" ||
+      href === "/admin" ||
+      href === "/teacher" ||
+      href === "/student" ||
+      href === "/parent"
+    ) {
       return pathname === href;
     }
     return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const handleEndSupport = async () => {
+    setEndingSupport(true);
+    try {
+      await endSupportSessionAction();
+      router.push("/platform");
+      router.refresh();
+    } finally {
+      setEndingSupport(false);
+    }
   };
 
   const isPortalRoot = PORTAL_ROOTS.has(pathname);
@@ -350,6 +421,44 @@ export function AppShell({ role, title, subtitle, actions, hideBack = false, chi
         </header>
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 pb-24 lg:pb-8 flex flex-col gap-6 max-w-[1400px] w-full mx-auto">
+          {tenantCtx?.supportSession ? (
+            <div
+              role="status"
+              className="rounded-lg border border-warning bg-warning-soft px-4 py-3 flex flex-wrap items-center justify-between gap-3 print:hidden"
+            >
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-bold text-ink">
+                  Audited Support Access Active — Viewing {tenantCtx.supportSession.schoolName} ({tenantCtx.supportSession.schoolCode})
+                </span>
+                <span className="text-xs text-ink-secondary">
+                  Mode: {tenantCtx.supportSession.readOnly ? "Read-Only" : "Support Write"} · Reason: {tenantCtx.supportSession.reason}
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleEndSupport}
+                disabled={endingSupport}
+              >
+                {endingSupport ? "Ending..." : "End Support Session"}
+              </Button>
+            </div>
+          ) : null}
+
+          {tenantCtx?.school &&
+          (tenantCtx.school.status === "read_only" || tenantCtx.school.status === "past_due") &&
+          shellRole !== "super_admin" ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-danger bg-danger-soft px-4 py-3 text-xs font-medium text-danger"
+            >
+              {tenantCtx.school.status === "read_only"
+                ? `${tenantCtx.school.name} is currently in Read-Only Mode due to billing overdue. Contact EduCore support to restore updates.`
+                : `${tenantCtx.school.name} renewal is past due. Settle invoice via EduCore Support to avoid read-only lock.`}
+            </div>
+          ) : null}
+
           {actions ? (
             <div className="flex flex-wrap items-center justify-end gap-3">{actions}</div>
           ) : null}
