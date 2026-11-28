@@ -8,10 +8,10 @@ import { Button, Checkbox, Input } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
 import { DEMO_USERS } from "@/lib/auth";
 import { AuthService } from "@/services/auth.service";
-import type { UserRole } from "@/types/domain";
+import type { PortalLoginRole } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
-const ROLES: { value: UserRole; label: string }[] = [
+const ROLES: { value: PortalLoginRole; label: string }[] = [
   { value: "admin", label: "Admin" },
   { value: "teacher", label: "Teacher" },
   { value: "student", label: "Student" },
@@ -19,7 +19,7 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: "staff", label: "Staff" },
 ];
 
-const ROLE_BUTTON_LABEL: Record<UserRole, string> = {
+const ROLE_BUTTON_LABEL: Record<PortalLoginRole, string> = {
   admin: "Sign In to Admin Portal",
   teacher: "Sign In to Teacher Portal",
   student: "Sign In to Student Portal",
@@ -30,14 +30,14 @@ const ROLE_BUTTON_LABEL: Record<UserRole, string> = {
 export default function LoginPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [selectedRole, setSelectedRole] = React.useState<UserRole>("admin");
+  const [selectedRole, setSelectedRole] = React.useState<PortalLoginRole>("admin");
   const [identifier, setIdentifier] = React.useState(DEMO_USERS.admin.email);
   const [password, setPassword] = React.useState("");
   const [remember, setRemember] = React.useState(true);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const handleRoleChange = (role: UserRole) => {
+  const handleRoleChange = (role: PortalLoginRole) => {
     setSelectedRole(role);
     setIdentifier(DEMO_USERS[role].email);
     setError(null);

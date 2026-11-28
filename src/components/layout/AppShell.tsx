@@ -139,7 +139,12 @@ export function AppShell({ role, title, subtitle, actions, hideBack = false, chi
         : "admin"
       : fallbackShellRole;
 
-  const navRole = role === "common" ? user.role : role;
+  const navRole: PortalRole | "staff" =
+    role === "common"
+      ? user.role === "teacher" || user.role === "student" || user.role === "parent" || user.role === "staff"
+        ? user.role
+        : "admin"
+      : role;
   const navItems = React.useMemo(() => getNavForRole(navRole), [navRole]);
   const branding = PORTAL_BRANDING[shellRole];
   const mobileBottomItems = navItems.slice(0, 4);

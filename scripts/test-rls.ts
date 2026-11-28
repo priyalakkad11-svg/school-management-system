@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../src/types/db";
-import type { UserRole } from "../src/types/domain";
+import type { PortalLoginRole } from "../src/types/domain";
+
+const DEMO_SCHOOL_ID = "11111111-1111-4111-8111-111111111111";
 
 function loadEnvLocal() {
   const envPath = path.join(process.cwd(), ".env.local");
@@ -15,7 +17,7 @@ function loadEnvLocal() {
   }
 }
 
-const ROLE_EMAILS: Record<UserRole, string> = {
+const ROLE_EMAILS: Record<PortalLoginRole, string> = {
   admin: "priya.lakkad@greenwood.edu",
   teacher: "kavita.nair@greenwood.edu",
   student: "aarav.sharma@student.greenwood.edu",
@@ -89,6 +91,7 @@ async function main() {
 
     const { error: anonInsertErr } = await anonClient.from("profiles").insert({
       id: "00000000-0000-0000-0000-000000000000",
+      school_id: DEMO_SCHOOL_ID,
       email: "bad@example.com",
       full_name: "Bad",
     });
@@ -152,6 +155,7 @@ async function main() {
 
     for (const role of ["teacher", "student", "parent", "staff"] as const) {
       const { error: ayInsertErr } = await sessions[role].client.from("academic_years").insert({
+        school_id: DEMO_SCHOOL_ID,
         code: `TEST-${role}`,
         name: "Unauthorized Session",
         start_date: "2028-04-01",
@@ -162,6 +166,7 @@ async function main() {
       record(`[academic_years] ${role} denied INSERT`, Boolean(ayInsertErr));
 
       const { error: clsInsertErr } = await sessions[role].client.from("school_classes").insert({
+        school_id: DEMO_SCHOOL_ID,
         code: `TEST-${role}`,
         name: "Unauthorized Class",
         grade_order: 1,
@@ -180,8 +185,35 @@ async function main() {
 
     const { error: staffPermEditErr } = await sessions.staff.client
       .from("rbac_roles")
-      .insert({ name: "Escalated Role" });
+      .insert({ school_id: DEMO_SCHOOL_ID, name: "Escalated Role" });
     record("[rbac_roles] staff denied INSERT", Boolean(staffPermEditErr));
+  }
+
+  // --- Section A: Tenancy Foundation (schools, support_sessions, super_admin escalation) ---
+  {
+    const { data: anonSchools } = await anonClient.from("schools").select("id");
+    record("[schools] anon denied SELECT", (anonSchools?.length ?? 0) === 0);
+
+    const { data: adminSchools } = await sessions.admin.client.from("schools").select("id");
+    record(
+      "[schools] admin sees only own Demo School",
+      adminSchools?.length === 1 && adminSchools[0]?.id === DEMO_SCHOOL_ID,
+    );
+
+    const { error: adminNewSchoolErr } = await sessions.admin.client.from("schools").insert({
+      school_code: "UNAUTH",
+      name: "Unauthorized Tenant",
+    });
+    record("[schools] school_admin denied INSERT", Boolean(adminNewSchoolErr));
+
+    const { data: adminSupport } = await sessions.admin.client.from("support_sessions").select("id");
+    record("[support_sessions] school_admin denied SELECT", (adminSupport?.length ?? 0) === 0);
+
+    const { error: escalateErr } = await sessions.admin.client
+      .from("profiles")
+      .update({ role: "super_admin" })
+      .eq("id", sessions.admin.userId);
+    record("[profiles] admin denied escalating self to super_admin", Boolean(escalateErr));
   }
 
   const passed = results.filter((r) => r.passed).length;

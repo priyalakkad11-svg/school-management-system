@@ -5,6 +5,7 @@ import type { Database } from "@/types/db";
 import type { UserRole } from "@/types/domain";
 
 const PROTECTED_PREFIXES = [
+  "/platform",
   "/admin",
   "/teacher",
   "/student",
@@ -16,8 +17,28 @@ const PROTECTED_PREFIXES = [
   "/status-errors",
 ];
 
+const STAFF_SUBROLE_PREFIXES: Record<string, string[]> = {
+  accountant: ["/admin/staff", "/admin/fees", "/admin/reports"],
+  librarian: ["/admin/staff", "/admin/library"],
+  transport: ["/admin/staff", "/admin/transport"],
+  hostel: ["/admin/staff", "/admin/hostel"],
+  receptionist: ["/admin/staff", "/admin/students", "/admin/communication"],
+};
+
+function matchesPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function isStaffAllowedAdminPath(pathname: string, subRole: string | undefined): boolean {
+  const allowed = subRole ? STAFF_SUBROLE_PREFIXES[subRole] ?? ["/admin/staff"] : ["/admin/staff"];
+  return allowed.some((prefix) => matchesPrefix(pathname, prefix));
+}
+
 function parseRole(raw: unknown): UserRole | null {
   if (
+    raw === "super_admin" ||
+    raw === "school_admin" ||
+    raw === "principal" ||
     raw === "admin" ||
     raw === "teacher" ||
     raw === "student" ||
@@ -27,6 +48,10 @@ function parseRole(raw: unknown): UserRole | null {
     return raw;
   }
   return null;
+}
+
+function isSchoolAdmin(role: UserRole): boolean {
+  return role === "school_admin" || role === "admin" || role === "principal";
 }
 
 export async function updateSession(request: NextRequest) {
@@ -57,7 +82,7 @@ export async function updateSession(request: NextRequest) {
   // Always call getClaims() immediately after creating client to validate JWT & refresh session.
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims as
-    | { sub?: string; app_metadata?: { role?: string } }
+    | { sub?: string; app_metadata?: { role?: string; sub_role?: string; school_id?: string } }
     | undefined;
 
   const { pathname } = request.nextUrl;
@@ -81,25 +106,56 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL("/403", request.url));
   }
 
-  if (pathname.startsWith("/admin") && role !== "admin" && role !== "staff") {
+  if (matchesPrefix(pathname, "/platform")) {
+    if (role !== "super_admin") {
+      return NextResponse.redirect(new URL("/403", request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // Super admin may view tenant portals ONLY during an active audited support session.
+  let superAdminHasSupportSession = false;
+  if (role === "super_admin") {
+    const { data: activeSupport } = await supabase
+      .from("support_sessions")
+      .select("id")
+      .eq("super_admin_id", claims.sub)
+      .is("ended_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+    superAdminHasSupportSession = Boolean(activeSupport?.id);
+  }
+
+  if (matchesPrefix(pathname, "/admin")) {
+    if (isSchoolAdmin(role) || superAdminHasSupportSession) {
+      return supabaseResponse;
+    }
+    if (role === "staff") {
+      let subRole = claims.app_metadata?.sub_role;
+      if (!subRole) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("sub_role")
+          .eq("id", claims.sub)
+          .maybeSingle();
+        subRole = prof?.sub_role ?? undefined;
+      }
+      if (!isStaffAllowedAdminPath(pathname, subRole)) {
+        return NextResponse.redirect(new URL("/403", request.url));
+      }
+      return supabaseResponse;
+    }
     return NextResponse.redirect(new URL("/403", request.url));
   }
-  if (
-    role === "staff" &&
-    (pathname === "/admin" ||
-      pathname.startsWith("/admin/setup") ||
-      pathname.startsWith("/admin/audit-logs") ||
-      pathname.startsWith("/admin/system-settings"))
-  ) {
+
+  if (matchesPrefix(pathname, "/teacher") && role !== "teacher" && !isSchoolAdmin(role) && !superAdminHasSupportSession) {
     return NextResponse.redirect(new URL("/403", request.url));
   }
-  if (pathname.startsWith("/teacher") && role !== "teacher" && role !== "admin") {
+  if (matchesPrefix(pathname, "/student") && role !== "student" && !isSchoolAdmin(role) && !superAdminHasSupportSession) {
     return NextResponse.redirect(new URL("/403", request.url));
   }
-  if (pathname.startsWith("/student") && role !== "student" && role !== "admin") {
-    return NextResponse.redirect(new URL("/403", request.url));
-  }
-  if (pathname.startsWith("/parent") && role !== "parent" && role !== "admin") {
+  if (matchesPrefix(pathname, "/parent") && role !== "parent" && !isSchoolAdmin(role) && !superAdminHasSupportSession) {
     return NextResponse.redirect(new URL("/403", request.url));
   }
 

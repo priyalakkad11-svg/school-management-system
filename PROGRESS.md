@@ -36,11 +36,11 @@
 - [x] Step 0: Baseline audit & `PHASE 5 v2` checklist ready
 
 ### A. Tenancy Foundation
-- [ ] A1: `schools` table + `school_id` NOT NULL (FK + indexes) across all tenant tables + backfill into Demo School + Storage `<school_id>/` prefixes
-- [ ] A2: Security-definer helpers (`current_school_id`, `current_role`, `is_super_admin`, `has_permission`, `school_allows_write`) + tenant-scoped RLS on all tables
-- [ ] A3: Roles (`super_admin`, `school_admin`, `principal`, `teacher`, `student`, `parent`, `staff` sub-roles), DB-backed permissions, proxy + staff RBAC tightening
-- [ ] A4: `super_admin` server-only bootstrap script (`SUPER_ADMIN_EMAIL` + runtime password), escalation trigger lock, TOTP MFA enforcement
-- [ ] A5: `pnpm test:tenant` (introspects all `school_id` tables + cross-tenant isolation across 2 schools + Storage) & extended `pnpm test:rls` (`0` failures)
+- [x] A1: `schools` table + `school_id` NOT NULL (FK + indexes) across all tenant tables + backfill into Demo School + Storage `<school_id>/` prefixes
+- [x] A2: Security-definer helpers (`current_school_id`, `current_role`, `is_super_admin`, `has_permission`, `school_allows_write`) + tenant-scoped RLS on all tables
+- [x] A3: Roles (`super_admin`, `school_admin`, `principal`, `teacher`, `student`, `parent`, `staff` sub-roles), DB-backed permissions, proxy + staff RBAC tightening
+- [ ] A4: `super_admin` server-only bootstrap script (`SUPER_ADMIN_EMAIL` + runtime password), escalation trigger lock, TOTP MFA enforcement *(bootstrap script & trigger done; TOTP AAL2 route enforcement follows with `/platform` UI in B)*
+- [x] A5: `pnpm test:tenant` (introspects all `school_id` tables + cross-tenant isolation across 2 schools + Storage) & extended `pnpm test:rls` (`0` failures)
 
 ### B. Platform / Super Admin (`111+` NEW screens — not in Figma)
 - [ ] B1: Plans, Slabs (INR per student/month), Coupons, Invoices (gapless FY numbering + GST/GSTIN), Manual Payments & Subscriptions schema + pricing calculator + proration/credit notes

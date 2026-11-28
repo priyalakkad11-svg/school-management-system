@@ -1,6 +1,15 @@
 import { z } from "zod";
 
-export const userRoleSchema = z.enum(["admin", "teacher", "student", "parent", "staff"]);
+export const userRoleSchema = z.enum([
+  "super_admin",
+  "school_admin",
+  "principal",
+  "admin",
+  "teacher",
+  "student",
+  "parent",
+  "staff",
+]);
 
 export const loginSchema = z.object({
   role: userRoleSchema,

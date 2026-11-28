@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DEMO_SCHOOL_ID, isSchoolAdminRole } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/errors";
 import { applyTableQuery, toPaginatedResult, type PaginatedResult, type TableQueryParams } from "@/lib/query";
 import { schoolProfileSchema } from "@/schemas/domain";
@@ -149,19 +150,54 @@ async function requireAdminSession() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { supabase: null, user: null, error: "Please sign in as an administrator." };
+    return {
+      supabase: null,
+      user: null,
+      schoolId: "",
+      schoolCode: "GIA01",
+      error: "Please sign in as an administrator.",
+    };
   }
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, status, deleted_at")
+    .select("id, role, status, school_id, deleted_at")
     .eq("id", user.id)
     .is("deleted_at", null)
     .maybeSingle();
 
-  if (!profile || profile.role !== "admin" || profile.status !== "Active") {
-    return { supabase: null, user: null, error: "Administrator privileges required." };
+  if (!profile || !isSchoolAdminRole(profile.role as UserRole) || profile.status !== "Active") {
+    return {
+      supabase: null,
+      user: null,
+      schoolId: "",
+      schoolCode: "GIA01",
+      error: "Administrator privileges required.",
+    };
   }
-  return { supabase, user, error: null };
+
+  const { data: school } = await supabase
+    .from("schools")
+    .select("school_code, status")
+    .eq("id", profile.school_id)
+    .maybeSingle();
+
+  if (school && (school.status === "read_only" || school.status === "suspended" || school.status === "cancelled")) {
+    return {
+      supabase: null,
+      user: null,
+      schoolId: profile.school_id,
+      schoolCode: school.school_code,
+      error: `School workspace is currently ${school.status.replace("_", "-")}. Contact EduCore support to reactivate writes.`,
+    };
+  }
+
+  return {
+    supabase,
+    user,
+    schoolId: profile.school_id,
+    schoolCode: school?.school_code ?? "GIA01",
+    error: null,
+  };
 }
 
 function formatDateLabel(isoDate: string): string {
@@ -194,7 +230,7 @@ export async function getSchoolSettingsAction(): Promise<ActionResult<SchoolSett
   const { data, error } = await supabase
     .from("school_settings")
     .select("*")
-    .eq("singleton_key", "default")
+    .limit(1)
     .maybeSingle();
 
   if (error) {
@@ -240,24 +276,39 @@ export async function saveSchoolSettingsAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid school profile details." };
   }
 
-  const { data, error } = await auth.supabase
+  const singletonKey = auth.schoolId === DEMO_SCHOOL_ID ? "default" : `${auth.schoolCode}-default`;
+  const { data: existingSettings } = await auth.supabase
     .from("school_settings")
-    .upsert(
-      {
-        singleton_key: "default",
-        school_name: parsed.data.schoolName,
-        affiliation_code: parsed.data.affiliationCode,
-        principal_name: parsed.data.principalName,
-        official_email: parsed.data.officialEmail,
-        phone: parsed.data.phone,
-        timezone_currency: parsed.data.timezoneCurrency,
-        address: parsed.data.address,
-        grading_mode: parsed.data.gradingMode,
-      },
-      { onConflict: "singleton_key" },
-    )
-    .select("*")
-    .single();
+    .select("id")
+    .eq("school_id", auth.schoolId)
+    .limit(1)
+    .maybeSingle();
+
+  const settingsPayload = {
+    school_id: auth.schoolId,
+    singleton_key: singletonKey,
+    school_name: parsed.data.schoolName,
+    affiliation_code: parsed.data.affiliationCode,
+    principal_name: parsed.data.principalName,
+    official_email: parsed.data.officialEmail,
+    phone: parsed.data.phone,
+    timezone_currency: parsed.data.timezoneCurrency,
+    address: parsed.data.address,
+    grading_mode: parsed.data.gradingMode,
+  };
+
+  const { data, error } = existingSettings
+    ? await auth.supabase
+        .from("school_settings")
+        .update(settingsPayload)
+        .eq("id", existingSettings.id)
+        .select("*")
+        .single()
+    : await auth.supabase
+        .from("school_settings")
+        .insert(settingsPayload)
+        .select("*")
+        .single();
 
   if (error || !data) {
     return { ok: false, error: getErrorMessage(error, "Unable to save school profile.") };
@@ -301,7 +352,7 @@ export async function uploadSchoolLogoAction(
   }
 
   const ext = file.type === "application/pdf" ? "pdf" : file.type === "image/png" ? "png" : "jpg";
-  const path = `school/crest-${Date.now()}.${ext}`;
+  const path = `${auth.schoolId}/${auth.user!.id}/crest-${Date.now()}.${ext}`;
   const admin = createAdminClient();
   const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -316,7 +367,7 @@ export async function uploadSchoolLogoAction(
   const { error: updateErr } = await auth.supabase
     .from("school_settings")
     .update({ logo_path: path })
-    .eq("singleton_key", "default");
+    .eq("school_id", auth.schoolId);
 
   if (updateErr) {
     return { ok: false, error: getErrorMessage(updateErr, "Unable to attach uploaded logo.") };
@@ -389,7 +440,11 @@ export async function createAcademicYearAction(
   const { data, error } = await auth.supabase
     .from("academic_years")
     .insert({
-      code: slugCode("AY", `${parsed.data.startDate.slice(0, 4)}-${parsed.data.endDate.slice(2, 4)}`),
+      school_id: auth.schoolId,
+      code: slugCode(
+        auth.schoolId === DEMO_SCHOOL_ID ? "AY" : `${auth.schoolCode}-AY`,
+        `${parsed.data.startDate.slice(0, 4)}-${parsed.data.endDate.slice(2, 4)}`,
+      ),
       name: parsed.data.name,
       start_date: parsed.data.startDate,
       end_date: parsed.data.endDate,
@@ -567,7 +622,11 @@ export async function upsertClassSectionAction(
   }
 
   const payload = {
-    code: slugCode("CLS", parsed.data.name),
+    school_id: auth.schoolId,
+    code: slugCode(
+      auth.schoolId === DEMO_SCHOOL_ID ? "CLS" : `${auth.schoolCode}-CLS`,
+      parsed.data.name,
+    ),
     name: parsed.data.name,
     grade_order: parsed.data.gradeOrder,
     wing: parsed.data.wing,
@@ -646,8 +705,15 @@ export async function upsertSubjectAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid subject input." };
   }
 
+  const baseCode = parsed.data.code.toUpperCase();
+  const scopedCode =
+    auth.schoolId === DEMO_SCHOOL_ID || baseCode.startsWith(`${auth.schoolCode}-`)
+      ? baseCode
+      : `${auth.schoolCode}-${baseCode}`;
+
   const payload = {
-    code: parsed.data.code.toUpperCase(),
+    school_id: auth.schoolId,
+    code: scopedCode,
     name: parsed.data.name,
     category: parsed.data.category,
     max_theory: parsed.data.maxTheory,
@@ -656,13 +722,20 @@ export async function upsertSubjectAction(
     status: parsed.data.status,
   };
 
-  const query = parsed.data.id
-    ? auth.supabase.from("subjects").update(payload).eq("id", parsed.data.id).select("*").single()
-    : auth.supabase
-        .from("subjects")
-        .upsert(payload, { onConflict: "code" })
-        .select("*")
-        .single();
+  let existingSubjectId = parsed.data.id ?? null;
+  if (!existingSubjectId) {
+    const { data: existingSubj } = await auth.supabase
+      .from("subjects")
+      .select("id")
+      .eq("school_id", auth.schoolId)
+      .eq("code", scopedCode)
+      .maybeSingle();
+    existingSubjectId = existingSubj?.id ?? null;
+  }
+
+  const query = existingSubjectId
+    ? auth.supabase.from("subjects").update(payload).eq("id", existingSubjectId).select("*").single()
+    : auth.supabase.from("subjects").insert(payload).select("*").single();
 
   const { data, error } = await query;
   if (error || !data) {
@@ -808,6 +881,7 @@ export async function saveSubjectMappingsAction(
   }
 
   const rows = parsed.data.items.map((item) => ({
+    school_id: auth.schoolId,
     academic_year_id: parsed.data.academicYearId,
     class_id: parsed.data.classId,
     subject_id: item.subjectId,
@@ -881,6 +955,7 @@ export async function saveRolePermissionsAction(
   }
 
   const payload = parsed.data.permissions.map((p) => ({
+    school_id: auth.schoolId,
     role_id: parsed.data.roleId,
     module: p.module,
     can_view: p.view,
@@ -913,10 +988,16 @@ export async function createCustomRoleAction(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid role name." };
   }
 
+  const roleName =
+    auth.schoolId === DEMO_SCHOOL_ID
+      ? parsed.data.name
+      : `${auth.schoolCode} - ${parsed.data.name}`;
+
   const { data: roleRow, error: roleErr } = await auth.supabase
     .from("rbac_roles")
     .insert({
-      name: parsed.data.name,
+      school_id: auth.schoolId,
+      name: roleName,
       description: parsed.data.description ?? "Custom school staff role",
       is_system: false,
     })
@@ -928,6 +1009,7 @@ export async function createCustomRoleAction(
   }
 
   const seedPerms = DEFAULT_RBAC_MODULES.map((module) => ({
+    school_id: auth.schoolId,
     role_id: roleRow.id,
     module,
     can_view: true,
@@ -1022,7 +1104,10 @@ export async function invitePortalUserAction(
 
   const admin = createAdminClient();
   const tempPassword = `Edu#${crypto.randomBytes(6).toString("base64url")}9`;
-  const userCode = `USR-${Math.floor(1000 + Math.random() * 8999)}`;
+  const userCode =
+    auth.schoolId === DEMO_SCHOOL_ID
+      ? `USR-${Math.floor(1000 + Math.random() * 8999)}`
+      : `${auth.schoolCode}-USR-${Math.floor(1000 + Math.random() * 8999)}`;
   const initials =
     parsed.data.fullName
       .split(/\s+/)
@@ -1037,6 +1122,7 @@ export async function invitePortalUserAction(
     email_confirm: true,
     app_metadata: {
       role: parsed.data.portalRole as UserRole,
+      school_id: auth.schoolId,
       user_code: userCode,
       full_name: parsed.data.fullName,
       subtitle: parsed.data.roleLabel,
@@ -1051,6 +1137,7 @@ export async function invitePortalUserAction(
   const { error: upsertErr } = await admin.from("profiles").upsert(
     {
       id: created.data.user.id,
+      school_id: auth.schoolId,
       user_code: userCode,
       email: parsed.data.email.toLowerCase(),
       full_name: parsed.data.fullName,

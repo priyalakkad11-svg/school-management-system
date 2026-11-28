@@ -1,8 +1,23 @@
-import type { SessionUser, UserRole } from "@/types/domain";
+import type { PortalLoginRole, SessionUser, UserRole } from "@/types/domain";
+
+export const DEMO_SCHOOL_ID = "11111111-1111-4111-8111-111111111111";
+
+export const SCHOOL_ADMIN_ROLES: readonly UserRole[] = [
+  "school_admin",
+  "admin",
+  "principal",
+];
+
+export function isSchoolAdminRole(role: UserRole | string | null | undefined): boolean {
+  return role === "school_admin" || role === "admin" || role === "principal";
+}
 
 export const ROLE_COOKIE_NAME = "educore_role";
 
 export const ROLE_HOME: Record<UserRole, string> = {
+  super_admin: "/platform",
+  school_admin: "/admin",
+  principal: "/admin",
   admin: "/admin",
   teacher: "/teacher",
   student: "/student",
@@ -10,7 +25,7 @@ export const ROLE_HOME: Record<UserRole, string> = {
   staff: "/admin/staff",
 };
 
-export const DEMO_USERS: Record<UserRole, SessionUser> = {
+export const DEMO_USERS: Record<PortalLoginRole, SessionUser> = {
   admin: {
     id: "ADM-001",
     name: "Priya Lakkad",
@@ -55,6 +70,9 @@ export const DEMO_USERS: Record<UserRole, SessionUser> = {
 
 export function parseRoleCookie(val: string | undefined): UserRole | null {
   if (
+    val === "super_admin" ||
+    val === "school_admin" ||
+    val === "principal" ||
     val === "admin" ||
     val === "teacher" ||
     val === "student" ||

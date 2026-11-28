@@ -39,6 +39,8 @@ async function resolveSeedPassword(): Promise<string> {
   return answer;
 }
 
+const DEMO_SCHOOL_ID = "11111111-1111-4111-8111-111111111111";
+
 interface SeedAccount {
   role: UserRole;
   userCode: string;
@@ -128,6 +130,7 @@ async function main() {
         email_confirm: true,
         app_metadata: {
           role: acc.role,
+          school_id: DEMO_SCHOOL_ID,
           user_code: acc.userCode,
           full_name: acc.fullName,
           subtitle: acc.subtitle,
@@ -147,6 +150,7 @@ async function main() {
         email_confirm: true,
         app_metadata: {
           role: acc.role,
+          school_id: DEMO_SCHOOL_ID,
           user_code: acc.userCode,
           full_name: acc.fullName,
           subtitle: acc.subtitle,
@@ -158,6 +162,7 @@ async function main() {
     const { error: profileErr } = await admin.from("profiles").upsert(
       {
         id: userId,
+        school_id: DEMO_SCHOOL_ID,
         user_code: acc.userCode,
         email: acc.email,
         full_name: acc.fullName,

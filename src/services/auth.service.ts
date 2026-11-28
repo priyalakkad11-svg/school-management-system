@@ -94,7 +94,7 @@ export const AuthService = {
     };
   },
 
-  signIn(role: UserRole): { user: SessionUser; redirectTo: string } {
+  signIn(role: import("@/types/domain").PortalLoginRole): { user: SessionUser; redirectTo: string } {
     return {
       user: DEMO_USERS[role],
       redirectTo: ROLE_HOME[role],

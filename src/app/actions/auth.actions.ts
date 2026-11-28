@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ROLE_HOME } from "@/lib/auth";
+import { isSchoolAdminRole, ROLE_HOME } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/errors";
 import {
   forgotPasswordSchema,
@@ -82,7 +82,7 @@ export async function signInAction(
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, user_code, full_name, email, role, subtitle, initials, status, must_change_password")
+    .select("id, school_id, sub_role, user_code, full_name, email, role, subtitle, initials, status, must_change_password")
     .eq("id", data.user.id)
     .is("deleted_at", null)
     .single();
@@ -98,7 +98,12 @@ export async function signInAction(
   }
 
   const authoritativeRole = profile.role as UserRole;
-  if (authoritativeRole !== parsed.data.role) {
+  const portalTabMatch =
+    authoritativeRole === parsed.data.role ||
+    (parsed.data.role === "admin" && isSchoolAdminRole(authoritativeRole)) ||
+    (parsed.data.role === "admin" && authoritativeRole === "super_admin");
+
+  if (!portalTabMatch) {
     await supabase.auth.signOut({ scope: "local" });
     return {
       ok: false,
@@ -120,6 +125,8 @@ export async function signInAction(
     role: authoritativeRole,
     initials: profile.initials,
     subtitle: profile.subtitle || authoritativeRole,
+    schoolId: profile.school_id,
+    subRole: (profile.sub_role as SessionUser["subRole"]) ?? null,
   };
 
   return {

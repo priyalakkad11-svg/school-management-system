@@ -16,7 +16,9 @@
     "check:mocks": "tsx scripts/check-mocks.ts",
     "test:e2e": "playwright test",
     "test:rls": "tsx scripts/test-rls.ts",
+    "test:tenant": "tsx scripts/test-tenant.ts",
     "seed": "tsx scripts/seed.ts",
+    "seed:superadmin": "tsx scripts/seed-superadmin.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

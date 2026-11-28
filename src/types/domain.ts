@@ -1,4 +1,17 @@
-export type UserRole = "admin" | "teacher" | "student" | "parent" | "staff";
+export type PortalLoginRole = "admin" | "teacher" | "student" | "parent" | "staff";
+
+export type UserRole =
+  | "super_admin"
+  | "school_admin"
+  | "principal"
+  | PortalLoginRole;
+
+export type StaffSubRole =
+  | "accountant"
+  | "librarian"
+  | "transport"
+  | "hostel"
+  | "receptionist";
 
 export type StatusTone = "success" | "warning" | "danger" | "info" | "primary" | "neutral";
 
@@ -9,6 +22,8 @@ export interface SessionUser {
   role: UserRole;
   initials: string;
   subtitle: string;
+  schoolId?: string;
+  subRole?: StaffSubRole | null;
 }
 
 export interface AcademicYear {

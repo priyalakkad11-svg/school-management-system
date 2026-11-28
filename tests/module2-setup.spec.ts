@@ -21,6 +21,12 @@ test.describe("Module 2: School Setup & Staff RBAC", () => {
 
     await page.goto("/admin/audit-logs", { waitUntil: "load" });
     await expect(page).toHaveURL(/\/403/);
+
+    await page.goto("/admin/students", { waitUntil: "load" });
+    await expect(page).toHaveURL(/\/403/);
+
+    await page.goto("/admin/exams", { waitUntil: "load" });
+    await expect(page).toHaveURL(/\/403/);
   });
 
   test("loads live school settings, classes, mappings, RBAC, and users from Supabase", async ({
