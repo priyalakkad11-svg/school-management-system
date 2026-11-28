@@ -123,16 +123,24 @@ export function AppShell({ role, title, subtitle, actions, hideBack = false, chi
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
 
-  const shellRole: "admin" | "teacher" | "student" | "parent" =
+  const fallbackShellRole: "admin" | "teacher" | "student" | "parent" =
     role === "teacher" || role === "student" || role === "parent" ? role : "admin";
 
   const user = React.useSyncExternalStore(
     AuthService.subscribe,
     AuthService.getCurrentClientUser,
-    () => DEMO_USERS[shellRole],
+    () => DEMO_USERS[fallbackShellRole],
   );
 
-  const navItems = React.useMemo(() => getNavForRole(role), [role]);
+  const shellRole: "admin" | "teacher" | "student" | "parent" =
+    role === "common"
+      ? user.role === "teacher" || user.role === "student" || user.role === "parent"
+        ? user.role
+        : "admin"
+      : fallbackShellRole;
+
+  const navRole = role === "common" ? user.role : role;
+  const navItems = React.useMemo(() => getNavForRole(navRole), [navRole]);
   const branding = PORTAL_BRANDING[shellRole];
   const mobileBottomItems = navItems.slice(0, 4);
 

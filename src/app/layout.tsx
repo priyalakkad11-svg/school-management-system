@@ -21,6 +21,31 @@ export const metadata: Metadata = {
   },
   description:
     "Unified K-12 campus platform powered by EduCore ERP connecting students, parents, faculty, and school administration.",
+  keywords: [
+    "Greenwood International Academy",
+    "EduCore School ERP",
+    "School Management System",
+    "K-12 ERP India",
+    "CBSE IB School Portal",
+    "Student Parent Teacher Portal",
+  ],
+  alternates: {
+    canonical: "./",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    siteName: "Greenwood International Academy — EduCore ERP",
+    title: "Greenwood International Academy | EduCore School ERP",
+    description:
+      "Unified K-12 campus platform powered by EduCore ERP connecting students, parents, faculty, and school administration.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Greenwood International Academy | EduCore School ERP",
+    description:
+      "Unified K-12 campus platform powered by EduCore ERP connecting students, parents, faculty, and school administration.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

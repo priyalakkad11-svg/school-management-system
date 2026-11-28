@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -19,6 +20,15 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { CommunicationService } from "@/services/school.service";
+
+export const metadata: Metadata = {
+  title: "Greenwood International Academy | CBSE & IB K-12 School & EduCore Portal",
+  description:
+    "Official K-12 campus portal for Greenwood International Academy (Baner Annexe, Pune). Admissions 2026–27, academics, notices, and unified Admin, Teacher, Student & Parent ERP.",
+  alternates: {
+    canonical: "/",
+  },
+};
 
 const HIGHLIGHTS = [
   { label: "Students Enrolled", value: "2,480+ K-12 Learners" },
