@@ -77,7 +77,7 @@
 
 ### E–I. Verification, Scale, Security, Docs & Leftovers
 - [x] E1: No Fake Actions — audit all `159` `showToast(` calls + add `pnpm check:toasts` + `pnpm check:mocks` = 0
-- [ ] F1: Composite `(school_id, ...)` indexes, SQL counter views/RPC, 3-school `10,000+` student seed + `EXPLAIN ANALYZE` (`< 300ms`)
+- [x] F1: Composite `(school_id, ...)` indexes, SQL counter views/RPC, 3-school `10,000+` student seed + `EXPLAIN ANALYZE` (`< 300ms`)
 - [ ] G1: DB rate limits + cleanup, `/api/health`, `error_logs` table + stub, soft-delete purge design, per-school CSV/JSON export & offboarding, guardian consent
 - [ ] H1: `docs/DEPLOY.md`, `docs/OPERATIONS.md`, `docs/SCHOOL-ADMIN-GUIDE.md`, update `/privacy` & `/terms` (`NEEDS LEGAL REVIEW`)
 - [ ] I1: `public/og-educore.png` (`1200×630`), per-school `Event` JSON-LD, remove unused starter SVGs

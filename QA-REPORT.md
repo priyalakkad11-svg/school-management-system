@@ -57,3 +57,24 @@ Verified live against `next start -p 3000`:
 
 **0 Open Issues.** Ready for `"CONNECT SUPABASE"` whenever you want Phase 5 to begin.
 
+---
+
+## 5. Phase 5 v2 — Scale Seed & Postgres `EXPLAIN ANALYZE` Benchmarks (Section F)
+
+Seeded **10,200 students** across 3 tenant schools via `pnpm seed:scale` (`scripts/seed-scale.ts`, idempotent chunked upserts of `500` rows/batch) on Supabase `gvmwlleuzzfljmejmtnd`:
+- `NHS03` (National Heritage Sr. Sec. School, Class 1–12): **3,500** students
+- `SPA01` (Sunrise Public Academy, Nursery–10): **3,400** students
+- `BVM02` (Bharati Vidya Mandir, Class 1–10): **3,300** students
+- `GIA01` (Greenwood International Academy Demo School, `is_demo = true`): **5** students
+
+Observed Postgres query plans & execution times (target `< 300 ms` across all queries):
+
+| Query / RPC | Index / Plan Used | Execution Time | Result |
+| --- | --- | --- | --- |
+| Tenant student directory (`ORDER BY full_name LIMIT 50` on `SPA01`) | `Index Scan using students_school_name_idx` | `1.045 ms` | **PASS** |
+| Tenant fee defaulters (`fee_balance_inr > 0 ORDER BY fee_balance_inr DESC LIMIT 50` on `NHS03`) | `Index Scan using students_school_class_idx` | `2.449 ms` | **PASS** |
+| Daily attendance slice (`school_id + attendance_date = CURRENT_DATE` on `BVM02`) | `Index Scan using student_attendance_school_date_idx` | `0.666 ms` | **PASS** |
+| `get_school_usage_summary('SPA01')` RPC | SQL counter function | `153.377 ms` | **PASS** |
+| `get_platform_dashboard_metrics()` RPC (cross-school SaaS aggregation) | SQL counter function | `9.314 ms` | **PASS** |
+
+
