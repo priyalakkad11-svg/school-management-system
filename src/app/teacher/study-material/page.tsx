@@ -11,37 +11,92 @@ import {
   StatusBadge,
 } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import {
+  listPortalAcademicDataAction,
+  uploadStudyMaterialAction,
+} from "@/app/actions/academics-finance.actions";
 
-const INITIAL_RESOURCES = [
-  { id: "r1", title: "Ch. 5 Arithmetic Progressions Notes", className: "10–A / 10–C", format: "PDF (3.4 MB)", downloads: "74 views", date: "21 Nov" },
-  { id: "r2", title: "Integration Formula Cheat Sheet", className: "12–Sci", format: "PDF (1.1 MB)", downloads: "31 views", date: "18 Nov" },
-  { id: "r3", title: "Coordinate Plane Video Walkthrough", className: "9–B", format: "Video Link", downloads: "35 views", date: "14 Nov" },
-  { id: "r4", title: "Sample Pre-Board Paper 2026", className: "10–A", format: "DOCX", downloads: "39 views", date: "10 Nov" },
-];
+interface ResourceRow {
+  id: string;
+  title: string;
+  className: string;
+  format: string;
+  date: string;
+}
 
 export default function TeacherStudyMaterialPage() {
   const { showToast } = useToast();
-  const [resources, setResources] = React.useState(INITIAL_RESOURCES);
-  const [targetClass, setTargetClass] = React.useState("10–A, 10–C");
-  const [subject, setSubject] = React.useState("Mathematics");
-  const [title, setTitle] = React.useState("Ch. 6 Triangles — Revision Notes PDF");
-  const [pickedFile, setPickedFile] = React.useState<string>("triangles-notes.pdf");
+  const [resources, setResources] = React.useState<ResourceRow[]>([]);
+  const [classOptions, setClassOptions] = React.useState<{ label: string; value: string }[]>([]);
+  const [targetClassId, setTargetClassId] = React.useState("");
+  const [title, setTitle] = React.useState("");
+  const [pickedFile, setPickedFile] = React.useState<File | null>(null);
+  const [uploading, setUploading] = React.useState(false);
 
-  const handleUpload = (e: React.FormEvent) => {
+  const loadData = React.useCallback(async () => {
+    const res = await listPortalAcademicDataAction();
+    if (!res.ok || !res.data) return;
+    setClassOptions(res.data.classes.map((c) => ({ label: c.name, value: c.id })));
+    setResources(
+      res.data.materials.map((m) => {
+        const cObj = Array.isArray(m.school_classes) ? m.school_classes[0] : m.school_classes;
+        return {
+          id: m.id,
+          title: m.title,
+          className: cObj?.name ?? "All Classes",
+          format: m.material_type || "PDF",
+          date: new Date(m.created_at).toLocaleDateString("en-IN"),
+        };
+      }),
+    );
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void listPortalAcademicDataAction().then((res) => {
+      if (!active || !res.ok || !res.data) return;
+      const cOpts = res.data.classes.map((c) => ({ label: c.name, value: c.id }));
+      setClassOptions(cOpts);
+      if (cOpts[0]) setTargetClassId(cOpts[0].value);
+      setResources(
+        res.data.materials.map((m) => {
+          const cObj = Array.isArray(m.school_classes) ? m.school_classes[0] : m.school_classes;
+          return {
+            id: m.id,
+            title: m.title,
+            className: cObj?.name ?? "All Classes",
+            format: m.material_type || "PDF",
+            date: new Date(m.created_at).toLocaleDateString("en-IN"),
+          };
+        }),
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
-    setResources((prev) => [
-      {
-        id: `r-${Date.now()}`,
-        title: title.trim(),
-        className: targetClass,
-        format: pickedFile.endsWith(".docx") ? "DOCX" : "PDF (2.2 MB)",
-        downloads: "1 view",
-        date: "Just now",
-      },
-      ...prev,
-    ]);
-    showToast(`Uploaded ${title} and notified ${targetClass} students.`);
+    if (!title.trim() || !pickedFile) {
+      showToast("Provide a resource title and choose a file.", "warning");
+      return;
+    }
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("title", title.trim());
+    fd.append("file", pickedFile);
+    if (targetClassId) fd.append("classId", targetClassId);
+    const res = await uploadStudyMaterialAction(fd);
+    setUploading(false);
+    if (!res.ok) {
+      showToast(res.error ?? "Upload failed.", "warning");
+      return;
+    }
+    showToast(`Uploaded ${title.trim()} to study-material bucket.`, "success");
+    setTitle("");
+    setPickedFile(null);
+    await loadData();
   };
 
   return (
@@ -55,37 +110,25 @@ export default function TeacherStudyMaterialPage() {
           <form onSubmit={handleUpload} className="flex flex-col gap-4">
             <h2 className="text-lg font-bold text-ink">Upload New Study Material</h2>
             <Select
-              label="Class & Section"
-              value={targetClass}
-              onChange={(e) => setTargetClass(e.target.value)}
-              options={[
-                { label: "Class 10–A, 10–C", value: "10–A, 10–C" },
-                { label: "Class 12–Sci", value: "12–Sci" },
-                { label: "Class 9–B", value: "9–B" },
-              ]}
-            />
-            <Select
-              label="Subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              options={[
-                { label: "Mathematics", value: "Mathematics" },
-                { label: "Applied Calculus", value: "Applied Calculus" },
-                { label: "Statistics", value: "Statistics" },
-              ]}
+              label="Class"
+              value={targetClassId}
+              onChange={(e) => setTargetClassId(e.target.value)}
+              options={classOptions.length ? classOptions : [{ label: "All Classes", value: "" }]}
             />
             <Input
               label="Resource Title"
+              placeholder="Ch. 6 Triangles — Revision Notes PDF"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
             <FileUpload
-              title="Drop PDF / PPTX / Video Link here"
+              title={pickedFile ? pickedFile.name : "Drop PDF / PPTX / DOCX here"}
               subtitle="Max file size 50 MB"
-              onFileSelected={setPickedFile}
+              accept=".pdf,.ppt,.pptx,.doc,.docx,.png,.jpg"
+              onFileSelected={(_name, file) => setPickedFile(file ?? null)}
             />
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Upload &amp; Notify Students
+            <Button type="submit" variant="primary" size="lg" disabled={uploading} className="w-full">
+              {uploading ? "Uploading..." : "Upload & Notify Students"}
             </Button>
           </form>
         </Card>
@@ -103,24 +146,28 @@ export default function TeacherStudyMaterialPage() {
                   <th className="py-2.5 px-3 text-xs font-semibold text-ink-secondary">Resource Name</th>
                   <th className="py-2.5 px-3 text-xs font-semibold text-ink-secondary">Class</th>
                   <th className="py-2.5 px-3 text-xs font-semibold text-ink-secondary">Type</th>
-                  <th className="py-2.5 px-3 text-xs font-semibold text-ink-secondary">Downloads</th>
                   <th className="py-2.5 px-3 text-xs font-semibold text-ink-secondary">Uploaded</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {resources.map((res) => (
-                  <tr key={res.id} className="hover:bg-subtle/60">
-                    <td className="py-3 px-3 text-sm font-semibold text-ink">{res.title}</td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{res.className}</td>
-                    <td className="py-3 px-3">
-                      <StatusBadge tone={res.format.includes("Video") ? "primary" : "info"}>
-                        {res.format}
-                      </StatusBadge>
+                {resources.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-sm text-ink-muted">
+                      No study material uploaded yet.
                     </td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{res.downloads}</td>
-                    <td className="py-3 px-3 text-sm text-ink-muted">{res.date}</td>
                   </tr>
-                ))}
+                ) : (
+                  resources.map((res) => (
+                    <tr key={res.id} className="hover:bg-subtle/60">
+                      <td className="py-3 px-3 text-sm font-semibold text-ink">{res.title}</td>
+                      <td className="py-3 px-3 text-sm text-ink-secondary">{res.className}</td>
+                      <td className="py-3 px-3">
+                        <StatusBadge tone="info">{res.format}</StatusBadge>
+                      </td>
+                      <td className="py-3 px-3 text-sm text-ink-muted">{res.date}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

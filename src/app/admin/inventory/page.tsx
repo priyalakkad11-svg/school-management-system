@@ -4,17 +4,27 @@ import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
 import { Button, Input } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
-import { MOCK_INVENTORY } from "@/mocks/school.data";
+import { getLiveInventoryAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
 import type { InventoryAsset } from "@/types/domain";
 
 export default function InventoryAssetsPage() {
   const { showToast } = useToast();
-  const [assets, setAssets] = React.useState<InventoryAsset[]>(MOCK_INVENTORY);
+  const [assets, setAssets] = React.useState<InventoryAsset[]>([]);
   const [open, setOpen] = React.useState(false);
   const [tag, setTag] = React.useState("AST-IT-099");
   const [name, setName] = React.useState("");
   const [dept, setDept] = React.useState("CS Lab 1 & 2");
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveInventoryAction().then((data) => {
+      if (active) setAssets(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();

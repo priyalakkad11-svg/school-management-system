@@ -1,16 +1,28 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_BOOKS } from "@/mocks/school.data";
+import { getLiveBooksAction } from "@/app/actions/live-data.actions";
 import type { LibraryBook } from "@/types/domain";
 
 export default function LibraryBooksListPage() {
+  const [rows, setRows] = React.useState<LibraryBook[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveBooksAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<LibraryBook>
       role="admin"
       title="Library Catalog & Book Inventory"
-      subtitle="18,400+ Indexed Volumes tracked with barcode / RFID accession numbers"
-      rows={MOCK_BOOKS}
+      subtitle="Indexed volumes tracked with barcode / RFID accession numbers"
+      rows={rows}
       searchPlaceholder="Search title, author, ISBN, shelf..."
       primaryAction={{ label: "Add Book", href: "/admin/library/books/manage" }}
       secondaryActions={[

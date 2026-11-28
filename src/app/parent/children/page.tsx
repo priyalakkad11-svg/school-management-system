@@ -6,25 +6,40 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
 import { cn } from "@/lib/utils";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
 
-const CHILDREN = [
-  {
-    id: "aarav",
-    name: "Aarav Rajesh Sharma",
-    meta: "Class 10–A • Roll #01 • ADM-2026-0142",
-    stats: "96.5% Attendance • 91.6% Term 1 Avg • ₹18,500 Due Jan 10",
-  },
-  {
-    id: "diya",
-    name: "Diya Rajesh Sharma",
-    meta: "Class 6–C • Roll #14 • ADM-2026-0618",
-    stats: "98.2% Attendance • 94.0% Term 1 Avg • ₹14,200 Due Jan 10",
-  },
-];
+interface ChildCard {
+  id: string;
+  name: string;
+  meta: string;
+  stats: string;
+}
 
 export default function ParentChildrenPage() {
   const { showToast } = useToast();
-  const [activeId, setActiveId] = React.useState("aarav");
+  const [children, setChildren] = React.useState<ChildCard[]>([]);
+  const [activeId, setActiveId] = React.useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveStudentsAction().then((students) => {
+      if (!active) return;
+      const stored = typeof window !== "undefined" ? window.localStorage.getItem("educore_active_child") : null;
+      const cards: ChildCard[] = students.slice(0, 6).map((s) => ({
+        id: s.id,
+        name: s.name,
+        meta: `${s.className}–${s.section} • Roll #${s.rollNo} • ${s.admissionId}`,
+        stats: `${s.attendancePct}% Attendance • ${s.termAvgPct}% Term Avg • ₹${s.feeDueAmount.toLocaleString("en-IN")} Balance`,
+      }));
+      setChildren(cards);
+      if (cards.length > 0) {
+        setActiveId(stored && cards.some((c) => c.id === stored) ? stored : cards[0].id);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AppShell
@@ -33,7 +48,7 @@ export default function ParentChildrenPage() {
       subtitle="Select a student to view attendance, grades, homework, and fee details across portals"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {CHILDREN.map((child) => {
+        {children.map((child) => {
           const selected = child.id === activeId;
           return (
             <Card
@@ -63,7 +78,10 @@ export default function ParentChildrenPage() {
                     variant="primary"
                     onClick={() => {
                       setActiveId(child.id);
-                      showToast(`Switched active student profile to ${child.name}.`);
+                      if (typeof window !== "undefined") {
+                        window.localStorage.setItem("educore_active_child", child.id);
+                      }
+                      showToast(`Switched active student profile to ${child.name}.`, "success");
                     }}
                   >
                     Switch to {child.name.split(" ")[0]}

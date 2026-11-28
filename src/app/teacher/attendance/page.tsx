@@ -4,7 +4,9 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import { markStudentAttendanceBatchAction } from "@/app/actions/students-staff.actions";
+import { listClassesAction } from "@/app/actions/setup.actions";
 
 type AttendanceMark = "Present" | "Absent" | "Late";
 
@@ -17,21 +19,34 @@ interface RosterRow {
   remark: string;
 }
 
-const INITIAL_ROSTER: RosterRow[] = MOCK_STUDENTS.map((s, idx) => ({
-  id: s.id,
-  rollNo: s.rollNo,
-  name: s.name,
-  admissionId: s.admissionId,
-  status: idx === 2 ? "Absent" : idx === 3 ? "Late" : "Present",
-  remark: idx === 0 ? "On time" : idx === 2 ? "Parent informed (Fever)" : idx === 3 ? "Arrived 08:42 AM" : "—",
-}));
-
 export default function TeacherAttendancePage() {
   const { showToast } = useToast();
   const [selectedClass, setSelectedClass] = React.useState("Class 10-A");
-  const [date, setDate] = React.useState("2026-11-25");
+  const [classId, setClassId] = React.useState("");
+  const [date, setDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [period, setPeriod] = React.useState("Period 1 — Mathematics");
-  const [roster, setRoster] = React.useState<RosterRow[]>(INITIAL_ROSTER);
+  const [roster, setRoster] = React.useState<RosterRow[]>([]);
+
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([getLiveStudentsAction(), listClassesAction()]).then(([stu, clsRes]) => {
+      if (!active) return;
+      setRoster(
+        stu.map((s) => ({
+          id: s.id,
+          rollNo: s.rollNo,
+          name: s.name,
+          admissionId: s.admissionId,
+          status: "Present",
+          remark: "—",
+        })),
+      );
+      if (clsRes.ok && clsRes.data?.rows[0]) setClassId(clsRes.data.rows[0].id);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const cycleStatus = (id: string) => {
     const order: AttendanceMark[] = ["Present", "Absent", "Late"];
@@ -49,9 +64,25 @@ export default function TeacherAttendancePage() {
     showToast(`All ${roster.length} students marked Present.`);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!classId || roster.length === 0) {
+      showToast("No students loaded for selected class.", "warning");
+      return;
+    }
+    const res = await markStudentAttendanceBatchAction({
+      classId,
+      sectionName: "A",
+      attendanceDate: date,
+      entries: roster.map((r) => ({ studentId: r.id, status: r.status })),
+    });
+    if (!res.ok || !res.data) {
+      showToast(res.error ?? "Failed submitting attendance.", "warning");
+      return;
+    }
     const presentCount = roster.filter((r) => r.status === "Present").length;
-    showToast(`Attendance submitted for ${selectedClass} (${presentCount}/${roster.length} Present).`);
+    showToast(
+      `Attendance saved for ${selectedClass} (${presentCount}/${roster.length} Present; ${res.data.absentAlertsQueued} parent alerts queued).`,
+    );
   };
 
   return (

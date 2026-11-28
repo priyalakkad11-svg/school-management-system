@@ -1,17 +1,29 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_HOSTEL_ROOMS } from "@/mocks/school.data";
+import { getLiveHostelRoomsAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
 import type { HostelRoom } from "@/types/domain";
 
 export default function HostelRoomsPage() {
+  const [rows, setRows] = React.useState<HostelRoom[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveHostelRoomsAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<HostelRoom>
       role="admin"
       title="Hostel Dormitories & Rooms"
       subtitle="Boys & Girls Residential Wings with AC/Non-AC capacity and bed availability"
-      rows={MOCK_HOSTEL_ROOMS}
+      rows={rows}
       searchPlaceholder="Search room number, wing, residents..."
       primaryAction={{ label: "Allocate Bed / Room", href: "/admin/hostel/allocations" }}
       filters={[

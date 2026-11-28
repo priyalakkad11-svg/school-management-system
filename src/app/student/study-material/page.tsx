@@ -4,30 +4,70 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, Input, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import {
+  getStudyMaterialSignedUrlAction,
+  listPortalAcademicDataAction,
+} from "@/app/actions/academics-finance.actions";
 
-const MATERIALS = [
-  { id: "m1", title: "Ch. 5 Arithmetic Progressions Notes", subject: "Mathematics", teacher: "Mrs. Kavita Nair", format: "PDF • 3.4 MB", tone: "info" as const, action: "Download" },
-  { id: "m2", title: "Ray Optics & Lenses Diagram Deck", subject: "Physics", teacher: "Mr. Arjun Menon", format: "PPTX • 8.2 MB", tone: "primary" as const, action: "Download" },
-  { id: "m3", title: "SQL Normalization Lecture Video", subject: "Comp. Science", teacher: "Mr. Vikram Rao", format: "MP4 • 18 min", tone: "success" as const, action: "Watch" },
-  { id: "m4", title: "Pre-Board Sample Question Bank", subject: "English", teacher: "Ms. Clara D'Souza", format: "PDF • 1.9 MB", tone: "info" as const, action: "Download" },
-];
+interface MaterialItem {
+  id: string;
+  title: string;
+  subject: string;
+  className: string;
+  format: string;
+  storagePath: string;
+}
 
 export default function StudentStudyMaterialPage() {
   const { showToast } = useToast();
+  const [materials, setMaterials] = React.useState<MaterialItem[]>([]);
   const [subject, setSubject] = React.useState("all");
-  const [format, setFormat] = React.useState("all");
   const [topic, setTopic] = React.useState("");
 
-  const filtered = React.useMemo(
-    () =>
-      MATERIALS.filter((m) => {
-        if (subject !== "all" && m.subject !== subject) return false;
-        if (format !== "all" && !m.format.startsWith(format)) return false;
-        if (topic.trim() && !m.title.toLowerCase().includes(topic.trim().toLowerCase())) return false;
-        return true;
-      }),
-    [subject, format, topic],
-  );
+  React.useEffect(() => {
+    let active = true;
+    void listPortalAcademicDataAction().then((res) => {
+      if (!active || !res.ok || !res.data) return;
+      setMaterials(
+        res.data.materials.map((m) => {
+          const sObj = Array.isArray(m.subjects) ? m.subjects[0] : m.subjects;
+          const cObj = Array.isArray(m.school_classes) ? m.school_classes[0] : m.school_classes;
+          return {
+            id: m.id,
+            title: m.title,
+            subject: sObj?.name ?? "General",
+            className: cObj?.name ?? "All Classes",
+            format: m.material_type || "PDF",
+            storagePath: m.storage_path,
+          };
+        }),
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filtered = materials.filter((m) => {
+    if (subject !== "all" && m.subject !== subject) return false;
+    if (topic.trim() && !m.title.toLowerCase().includes(topic.trim().toLowerCase())) return false;
+    return true;
+  });
+
+  const subjectOptions = [
+    { label: "All Subjects", value: "all" },
+    ...Array.from(new Set(materials.map((m) => m.subject))).map((s) => ({ label: s, value: s })),
+  ];
+
+  const handleOpen = async (item: MaterialItem) => {
+    const res = await getStudyMaterialSignedUrlAction(item.storagePath);
+    if (!res.ok || !res.data?.signedUrl) {
+      showToast(res.error ?? "Signed download link unavailable.", "warning");
+      return;
+    }
+    window.open(res.data.signedUrl, "_blank", "noopener,noreferrer");
+    showToast(`Opened ${item.title}.`, "success");
+  };
 
   return (
     <AppShell
@@ -35,29 +75,12 @@ export default function StudentStudyMaterialPage() {
       title="Study Material Library"
       subtitle="Download teacher-verified notes, slide decks, and recorded revision lectures"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select
           label="Subject"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          options={[
-            { label: "All Subjects", value: "all" },
-            { label: "Mathematics", value: "Mathematics" },
-            { label: "Physics", value: "Physics" },
-            { label: "Comp. Science", value: "Comp. Science" },
-            { label: "English", value: "English" },
-          ]}
-        />
-        <Select
-          label="Format"
-          value={format}
-          onChange={(e) => setFormat(e.target.value)}
-          options={[
-            { label: "PDF, Slides & Videos", value: "all" },
-            { label: "PDF", value: "PDF" },
-            { label: "PPTX", value: "PPTX" },
-            { label: "MP4", value: "MP4" },
-          ]}
+          options={subjectOptions}
         />
         <Input
           label="Search Topic"
@@ -69,7 +92,7 @@ export default function StudentStudyMaterialPage() {
 
       <Card className="p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-ink">Available Class 10–A Resources</h2>
+          <h2 className="text-base font-bold text-ink">Available Resources</h2>
           <span className="text-xs text-ink-muted">{filtered.length} entries</span>
         </div>
 
@@ -79,31 +102,39 @@ export default function StudentStudyMaterialPage() {
               <tr className="bg-subtle border-b border-line">
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Title</th>
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Subject</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Uploaded By</th>
+                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Class</th>
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Format</th>
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-subtle/60">
-                  <td className="py-3.5 px-4 text-sm font-semibold text-ink">{item.title}</td>
-                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{item.subject}</td>
-                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{item.teacher}</td>
-                  <td className="py-3.5 px-4">
-                    <StatusBadge tone={item.tone}>{item.format}</StatusBadge>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <button
-                      type="button"
-                      onClick={() => showToast(`Opening ${item.title} (${item.action})`)}
-                      className="text-xs font-semibold text-brand hover:underline cursor-pointer"
-                    >
-                      {item.action}
-                    </button>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-sm text-ink-muted">
+                    No study materials uploaded for your class yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-subtle/60">
+                    <td className="py-3.5 px-4 text-sm font-semibold text-ink">{item.title}</td>
+                    <td className="py-3.5 px-4 text-sm text-ink-secondary">{item.subject}</td>
+                    <td className="py-3.5 px-4 text-sm text-ink-secondary">{item.className}</td>
+                    <td className="py-3.5 px-4">
+                      <StatusBadge tone="info">{item.format}</StatusBadge>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <button
+                        type="button"
+                        onClick={() => void handleOpen(item)}
+                        className="text-xs font-semibold text-brand hover:underline cursor-pointer"
+                      >
+                        Download
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

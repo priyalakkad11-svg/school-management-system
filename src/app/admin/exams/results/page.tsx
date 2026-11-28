@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { listExamsAndScalesAction, togglePublishExamAction } from "@/app/actions/academics-finance.actions";
 
 const CLASS_RESULTS = [
   { id: "cr-1", cls: "Class 10–A", entered: "40 / 40", passPct: "97.5%", topScore: "96.4% (Ananya V.)", status: "Published" },
@@ -16,9 +17,18 @@ export default function ResultGenerationPage() {
   const { showToast } = useToast();
   const [rows, setRows] = React.useState(CLASS_RESULTS);
 
-  const publishAll = () => {
+  const publishAll = async () => {
+    const exRes = await listExamsAndScalesAction();
+    const examId = exRes.ok ? exRes.data.exams[0]?.id : undefined;
+    if (examId) {
+      const r = await togglePublishExamAction({ examId, publish: true });
+      if (!r.ok) {
+        showToast(r.error ?? "Failed publishing results.", "warning");
+        return;
+      }
+    }
     setRows((prev) => prev.map((r) => ({ ...r, status: "Published" })));
-    showToast("Term 1 Report Cards published to all Student & Parent portals.");
+    showToast("Term Report Cards published to all Student & Parent portals.");
   };
 
   return (

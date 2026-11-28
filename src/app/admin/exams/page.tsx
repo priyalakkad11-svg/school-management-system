@@ -1,16 +1,28 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_EXAMS } from "@/mocks/school.data";
+import { getLiveExamsAction } from "@/app/actions/live-data.actions";
 import type { ExamItem } from "@/types/domain";
 
 export default function ExamScheduleListPage() {
+  const [rows, setRows] = React.useState<ExamItem[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveExamsAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<ExamItem>
       role="admin"
       title="Examinations & Assessment Schedules"
       subtitle="Create terms, lock marks registers, publish digital report cards, and track exam readiness"
-      rows={MOCK_EXAMS}
+      rows={rows}
       searchPlaceholder="Search exam title, term, classes..."
       primaryAction={{ label: "Create Exam", href: "/admin/exams/create" }}
       secondaryActions={[

@@ -4,36 +4,44 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, StatusBadge, Textarea } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_LEAVES } from "@/mocks/school.data";
+import { getLiveLeavesAction } from "@/app/actions/live-data.actions";
+import { applyTeacherLeaveAction } from "@/app/actions/students-staff.actions";
 import type { LeaveRequest } from "@/types/domain";
 
 export default function TeacherLeavePage() {
   const { showToast } = useToast();
-  const [history, setHistory] = React.useState<LeaveRequest[]>(MOCK_LEAVES);
+  const [history, setHistory] = React.useState<LeaveRequest[]>([]);
   const [leaveType, setLeaveType] = React.useState("Medical");
   const [fromDate, setFromDate] = React.useState("2026-11-27");
   const [toDate, setToDate] = React.useState("2026-11-28");
   const [substitute, setSubstitute] = React.useState("Mr. Rohan Deshmukh (Math)");
   const [reason, setReason] = React.useState("Scheduled dental surgery & recovery");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    let active = true;
+    void getLiveLeavesAction().then((data) => {
+      if (active) setHistory(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) return;
-    setHistory((prev) => [
-      {
-        id: `lv-${Date.now()}`,
-        applicantName: "Mrs. Kavita Nair",
-        applicantRole: "Teacher",
-        classOrDept: "Mathematics",
-        leaveType,
-        dates: `${fromDate} to ${toDate}`,
-        days: 2,
-        substitute,
-        reason: reason.trim(),
-        status: "Pending",
-      },
-      ...prev,
-    ]);
+    const res = await applyTeacherLeaveAction({
+      leaveType,
+      fromDate,
+      toDate,
+      reason: reason.trim(),
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to submit leave.", "warning");
+      return;
+    }
+    const fresh = await getLiveLeavesAction();
+    setHistory(fresh);
     showToast("Leave request submitted for Principal review.");
   };
 

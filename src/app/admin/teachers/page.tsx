@@ -1,17 +1,29 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_TEACHERS } from "@/mocks/school.data";
+import { getLiveTeachersAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
 import type { Teacher } from "@/types/domain";
 
 export default function AdminTeachersListPage() {
+  const [rows, setRows] = React.useState<Teacher[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveTeachersAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<Teacher>
       role="admin"
       title="Teachers & Faculty Directory"
-      subtitle="142 Certified Educators across Pre-Primary, Primary, Secondary & Senior Wings"
-      rows={MOCK_TEACHERS}
+      subtitle={`${rows.length} Certified Educators loaded from database`}
+      rows={rows}
       searchPlaceholder="Search teacher name, EMP ID, department..."
       primaryAction={{ label: "Add Teacher", href: "/admin/teachers/manage" }}
       secondaryActions={[

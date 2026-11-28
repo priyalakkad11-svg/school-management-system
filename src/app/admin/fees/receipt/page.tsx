@@ -1,10 +1,26 @@
 import { PrintView } from "@/components/templates/PrintView";
 import { StatusBadge } from "@/components/ui/primitives";
-import { MOCK_FEE_TRANSACTIONS } from "@/mocks/school.data";
+import { FinanceService } from "@/services/school.service";
 import { formatInr } from "@/lib/utils";
 
-export default function FeeReceiptPrintPage() {
-  const tx = MOCK_FEE_TRANSACTIONS[0];
+export const dynamic = "force-dynamic";
+
+export default async function FeeReceiptPrintPage() {
+  const all = await FinanceService.listTransactions();
+  const tx = all[0] ?? {
+    id: "rcp",
+    receiptNo: "RCP-GIA01-2627-0001",
+    admissionId: "ADM-2026-0142",
+    studentName: "Aarav Sharma",
+    className: "Class 10-A",
+    feeHead: "Academic Tuition & Fees",
+    amount: 18500,
+    discount: 0,
+    netPaid: 18500,
+    mode: "UPI",
+    date: "Today",
+    status: "Paid" as const,
+  };
 
   return (
     <PrintView

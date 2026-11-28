@@ -1,17 +1,29 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_ROUTES } from "@/mocks/school.data";
+import { getLiveRoutesAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
 import type { TransportRoute } from "@/types/domain";
 
 export default function TransportRoutesPage() {
+  const [rows, setRows] = React.useState<TransportRoute[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveRoutesAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<TransportRoute>
       role="admin"
       title="School Bus Routes & GPS Tracking"
-      subtitle="18 Active Routes across Pune with real-time RFID student boarding telemetry"
-      rows={MOCK_ROUTES}
+      subtitle="Active school transport corridors with driver & vehicle telemetry"
+      rows={rows}
       searchPlaceholder="Search route code, stop, driver..."
       primaryAction={{ label: "Assign Students", href: "/admin/transport/assignments" }}
       secondaryActions={[{ label: "Vehicles & Drivers", href: "/admin/transport/vehicles" }]}

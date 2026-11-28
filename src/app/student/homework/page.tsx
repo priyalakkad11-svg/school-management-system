@@ -5,39 +5,88 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, FileUpload, Input, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
 import { cn } from "@/lib/utils";
+import {
+  listPortalAcademicDataAction,
+  submitStudentHomeworkAction,
+} from "@/app/actions/academics-finance.actions";
 
 interface StudentHomework {
   id: string;
   title: string;
   subject: string;
   dueDate: string;
-  status: "Pending" | "Submitted" | "Graded 19/20";
+  status: string;
 }
-
-const INITIAL_LIST: StudentHomework[] = [
-  { id: "sh-1", title: "Quadratic Equations Set #4", subject: "Mathematics", dueDate: "28 Nov 2026", status: "Pending" },
-  { id: "sh-2", title: "Newton's Laws Lab Report", subject: "Physics", dueDate: "30 Nov 2026", status: "Pending" },
-  { id: "sh-3", title: "Shakespeare Essay Draft", subject: "English", dueDate: "22 Nov 2026", status: "Submitted" },
-  { id: "sh-4", title: "SQL Joins Practice", subject: "Comp. Science", dueDate: "18 Nov 2026", status: "Graded 19/20" },
-];
 
 export default function StudentHomeworkPage() {
   const { showToast } = useToast();
-  const [items, setItems] = React.useState(INITIAL_LIST);
-  const [selectedId, setSelectedId] = React.useState("sh-1");
-  const [note, setNote] = React.useState("Completed all 15 problems.");
-  const [fileName, setFileName] = React.useState("aarav_math_set4.pdf (2.1 MB)");
+  const [items, setItems] = React.useState<StudentHomework[]>([]);
+  const [selectedId, setSelectedId] = React.useState("");
+  const [note, setNote] = React.useState("Completed all exercises.");
+  const [fileName, setFileName] = React.useState("solution.pdf");
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const reload = React.useCallback(async () => {
+    const res = await listPortalAcademicDataAction();
+    if (!res.ok || !res.data) return;
+    const subSet = new Map(res.data.submissions.map((s) => [s.assignment_id, s.status]));
+    const rows: StudentHomework[] = res.data.homework.map((h) => {
+      const subObj = Array.isArray(h.subjects) ? h.subjects[0] : h.subjects;
+      return {
+        id: h.id,
+        title: h.title,
+        subject: subObj?.name ?? "General",
+        dueDate: h.due_date,
+        status: subSet.get(h.id) ?? "Pending",
+      };
+    });
+    setItems(rows);
+    if (rows[0]) setSelectedId((prev) => prev || rows[0].id);
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void listPortalAcademicDataAction().then((res) => {
+      if (!active || !res.ok || !res.data) return;
+      const subSet = new Map(res.data.submissions.map((s) => [s.assignment_id, s.status]));
+      const rows: StudentHomework[] = res.data.homework.map((h) => {
+        const subObj = Array.isArray(h.subjects) ? h.subjects[0] : h.subjects;
+        return {
+          id: h.id,
+          title: h.title,
+          subject: subObj?.name ?? "General",
+          dueDate: h.due_date,
+          status: subSet.get(h.id) ?? "Pending",
+        };
+      });
+      setItems(rows);
+      if (rows[0]) setSelectedId(rows[0].id);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const selected = items.find((i) => i.id === selectedId) ?? items[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === selected.id ? { ...item, status: "Submitted" } : item,
-      ),
-    );
-    showToast(`Submitted ${fileName} for "${selected.title}".`);
+    if (!selected) {
+      showToast("No assignment selected.", "warning");
+      return;
+    }
+    setSubmitting(true);
+    const res = await submitStudentHomeworkAction({
+      assignmentId: selected.id,
+      submissionText: `${fileName} — ${note}`,
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to submit homework.", "warning");
+      return;
+    }
+    showToast(`Submitted ${fileName} for "${selected.title}".`, "success");
+    await reload();
   };
 
   return (
@@ -64,41 +113,49 @@ export default function StudentHomeworkPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {items.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => setSelectedId(item.id)}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      item.id === selected.id ? "bg-brand-soft/60" : "hover:bg-subtle/60",
-                    )}
-                  >
-                    <td className="py-3 px-3 text-sm font-semibold text-ink">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(item.id)}
-                        className="text-left cursor-pointer hover:text-brand"
-                      >
-                        {item.title}
-                      </button>
-                    </td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{item.subject}</td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{item.dueDate}</td>
-                    <td className="py-3 px-3">
-                      <StatusBadge
-                        tone={
-                          item.status.startsWith("Graded")
-                            ? "success"
-                            : item.status === "Submitted"
-                              ? "info"
-                              : "warning"
-                        }
-                      >
-                        {item.status}
-                      </StatusBadge>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-sm text-ink-muted">
+                      No homework assignments published yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  items.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelectedId(item.id)}
+                      className={cn(
+                        "cursor-pointer transition-colors",
+                        item.id === selected?.id ? "bg-brand-soft/60" : "hover:bg-subtle/60",
+                      )}
+                    >
+                      <td className="py-3 px-3 text-sm font-semibold text-ink">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(item.id)}
+                          className="text-left cursor-pointer hover:text-brand"
+                        >
+                          {item.title}
+                        </button>
+                      </td>
+                      <td className="py-3 px-3 text-sm text-ink-secondary">{item.subject}</td>
+                      <td className="py-3 px-3 text-sm text-ink-secondary">{item.dueDate}</td>
+                      <td className="py-3 px-3">
+                        <StatusBadge
+                          tone={
+                            item.status.startsWith("Graded")
+                              ? "success"
+                              : item.status === "Submitted"
+                                ? "info"
+                                : "warning"
+                          }
+                        >
+                          {item.status}
+                        </StatusBadge>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -107,7 +164,9 @@ export default function StudentHomeworkPage() {
         <Card className="lg:col-span-4 p-6">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <span className="self-start">
-              <StatusBadge tone="warning">Selected: {selected.title}</StatusBadge>
+              <StatusBadge tone="warning">
+                Selected: {selected ? selected.title : "None"}
+              </StatusBadge>
             </span>
             <h2 className="text-lg font-bold text-ink">Submit Homework</h2>
             <p className="text-xs text-ink-secondary">
@@ -123,8 +182,14 @@ export default function StudentHomeworkPage() {
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Submit Assignment
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={submitting || !selected}
+              className="w-full"
+            >
+              {submitting ? "Submitting..." : "Submit Assignment"}
             </Button>
           </form>
         </Card>

@@ -4,6 +4,9 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { listExamsAndScalesAction, saveExamMarksAction } from "@/app/actions/academics-finance.actions";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import { listSubjectsAction } from "@/app/actions/setup.actions";
 
 const ADMIN_MARKS = [
   { id: "am-1", roll: "01", name: "Aarav Sharma", theory: 74, internal: 19 },
@@ -30,7 +33,35 @@ export default function AdminMarksEntryPage() {
       title="Admin Marks Moderation & Entry"
       subtitle="Verify teacher-entered scores, apply grace moderation, and lock final mark sheets"
       actions={
-        <Button variant="primary" onClick={() => showToast(`Marks locked for ${cls}.`)}>
+        <Button
+          variant="primary"
+          onClick={async () => {
+            const [exRes, stuRows, subRes] = await Promise.all([
+              listExamsAndScalesAction(),
+              getLiveStudentsAction(),
+              listSubjectsAction(),
+            ]);
+            const examId = exRes.ok ? exRes.data.exams[0]?.id : undefined;
+            const subjectId = subRes.ok ? subRes.data?.[0]?.id : undefined;
+            if (examId && subjectId && stuRows.length > 0) {
+              const r = await saveExamMarksAction({
+                examId,
+                subjectId,
+                entries: rows.slice(0, stuRows.length).map((mr, i) => ({
+                  studentId: stuRows[i].id,
+                  theory: mr.theory,
+                  practical: mr.internal,
+                  maxMarks: 100,
+                })),
+              });
+              if (!r.ok) {
+                showToast(r.error ?? "Failed saving marks.", "warning");
+                return;
+              }
+            }
+            showToast(`Marks saved & moderated for ${cls}.`);
+          }}
+        >
           Verify &amp; Lock All Sections
         </Button>
       }

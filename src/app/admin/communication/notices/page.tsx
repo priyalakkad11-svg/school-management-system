@@ -4,33 +4,50 @@ import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
 import { Button, Input, Select, Textarea } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
-import { MOCK_NOTICES } from "@/mocks/school.data";
+import { getLiveNoticesAction } from "@/app/actions/live-data.actions";
+import { publishNoticeAction } from "@/app/actions/academics-finance.actions";
 import type { NoticeItem } from "@/types/domain";
 
 export default function AdminNoticeBoardPage() {
   const { showToast } = useToast();
-  const [notices, setNotices] = React.useState<NoticeItem[]>(MOCK_NOTICES);
+  const [notices, setNotices] = React.useState<NoticeItem[]>([]);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [audience, setAudience] = React.useState("All Portals");
   const [description, setDescription] = React.useState("");
 
-  const handlePublish = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    let active = true;
+    void getLiveNoticesAction().then((data) => {
+      if (active) setNotices(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    setNotices((prev) => [
-      {
-        id: `nt-${Date.now()}`,
-        title: title.trim(),
-        audience,
-        category: "Circular",
-        date: "25 Nov 2026",
-        description: description.trim() || "Published via Principal Communication Desk.",
-        views: 1,
-        status: "Published",
-      },
-      ...prev,
-    ]);
+    const roles =
+      audience === "Parents"
+        ? ["parent"]
+        : audience === "Grades 1–12"
+          ? ["student", "parent", "teacher"]
+          : ["admin", "teacher", "student", "parent"];
+    const res = await publishNoticeAction({
+      title: title.trim(),
+      body: description.trim() || "Published via Principal Communication Desk.",
+      category: "Circular",
+      targetRoles: roles,
+      isPublic: audience === "All Portals",
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to publish notice.", "warning");
+      return;
+    }
+    const fresh = await getLiveNoticesAction();
+    setNotices(fresh);
     setModalOpen(false);
     setTitle("");
     setDescription("");

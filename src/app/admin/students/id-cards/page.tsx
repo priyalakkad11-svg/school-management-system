@@ -3,11 +3,23 @@
 import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Avatar, Button, Card, Select, StatusBadge } from "@/components/ui/primitives";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import type { Student } from "@/types/domain";
 
 export default function StudentIdCardGeneratorPage() {
   const [cls, setCls] = React.useState("Class 10–A (40 Students)");
   const [template, setTemplate] = React.useState("Vertical Smart RFID Card");
+  const [students, setStudents] = React.useState<Student[]>([]);
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveStudentsAction().then((rows) => {
+      if (active) setStudents(rows);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AppShell
@@ -42,7 +54,7 @@ export default function StudentIdCardGeneratorPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {MOCK_STUDENTS.slice(0, 4).map((student) => {
+        {students.slice(0, 4).map((student) => {
           const initials = student.name
             .split(" ")
             .map((p) => p[0])

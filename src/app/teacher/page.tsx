@@ -1,70 +1,63 @@
 import { DashboardPage } from "@/components/templates/DashboardPage";
-import { AcademicService } from "@/services/school.service";
+import { AcademicService, StaffService } from "@/services/school.service";
+import { listPortalAcademicDataAction } from "@/app/actions/academics-finance.actions";
 
 export default async function TeacherDashboardPage() {
-  await AcademicService.listExams();
+  const [teachers, exams, portal] = await Promise.all([
+    StaffService.listTeachers(),
+    AcademicService.listExams(),
+    listPortalAcademicDataAction(),
+  ]);
+  const teacher = teachers[0];
+  const classes = portal.ok && portal.data ? portal.data.classes : [];
+  const homework = portal.ok && portal.data ? portal.data.homework : [];
+  const notices = portal.ok && portal.data ? portal.data.notices : [];
 
   return (
     <DashboardPage
       role="teacher"
       title="Teacher Dashboard"
-      subtitle="Mrs. Kavita Nair • Senior PGT Mathematics • Class Teacher 10-A"
+      subtitle={
+        teacher
+          ? `${teacher.name} • ${teacher.department} • ${teacher.classesAssigned}`
+          : "Faculty Workspace"
+      }
       kpis={[
         {
-          title: "Assigned Classes",
-          value: "5 Sections",
-          delta: "Grades 9, 10 & 12",
+          title: "Active Classes",
+          value: `${classes.length} Classes`,
+          delta: classes.slice(0, 3).map((c) => c.name).join(", ") || "Configured",
           deltaTone: "success",
         },
         {
-          title: "Today's Periods",
-          value: "4 / 6 Done",
-          delta: "Next: 10-A @ 11:30 AM",
-          deltaTone: "success",
+          title: "Homework Sets",
+          value: `${homework.length} Published`,
+          delta: homework[0]?.title ?? "Assign homework",
+          deltaTone: "info",
         },
         {
-          title: "Pending Homework",
-          value: "18 Submissions",
-          delta: "2 assignments to grade",
+          title: "Upcoming Exams",
+          value: `${exams.length} Scheduled`,
+          delta: exams[0]?.name ?? "Exam Cell synced",
           deltaTone: "warning",
         },
         {
-          title: "My Leave Balance",
-          value: "11 Days",
-          delta: "Casual + Medical",
+          title: "School Notices",
+          value: `${notices.length} Active`,
+          delta: notices[0]?.title ?? "No active circulars",
           deltaTone: "success",
         },
       ]}
-      tableTitle="Today's Teaching Schedule"
-      tableCountLabel="4 records shown"
-      tableHeaders={["Period", "Time", "Class & Section", "Subject", "Room", "Attendance"]}
-      tableRows={[
-        {
-          id: "p1",
-          cells: ["Period 1", "08:30 – 09:15", "Class 10–A", "Mathematics", "Room 204"],
-          badge: { label: "Marked (38/40)", tone: "success" },
-          href: "/teacher/attendance",
-        },
-        {
-          id: "p2",
-          cells: ["Period 2", "09:20 – 10:05", "Class 9–B", "Mathematics", "Room 108"],
-          badge: { label: "Marked (36/36)", tone: "success" },
-          href: "/teacher/attendance",
-        },
-        {
-          id: "p4",
-          cells: ["Period 4", "11:30 – 12:15", "Class 12–Sci", "Calculus", "Room 301"],
-          badge: { label: "Upcoming", tone: "info" },
-          href: "/teacher/classes",
-        },
-        {
-          id: "p6",
-          cells: ["Period 6", "01:45 – 02:30", "Class 10–C", "Mathematics", "Room 206"],
-          badge: { label: "Pending", tone: "warning" },
-          href: "/teacher/attendance",
-        },
-      ]}
-      bottomNote="Recent Department Notices & Tasks: Mid-Term Math Question Paper due to Exam Cell by Nov 29 • Science Expo Mentors meeting at 3:00 PM"
+      tableTitle="Active Classes & Examination Schedule"
+      tableCountLabel={`${classes.slice(0, 5).length} records shown`}
+      tableHeaders={["Class", "Grade Order", "Status"]}
+      tableRows={classes.slice(0, 5).map((c) => ({
+        id: c.id,
+        cells: [c.name, `Level ${c.grade_order}`],
+        badge: { label: "Attendance Open", tone: "success" as const },
+        href: "/teacher/attendance",
+      }))}
+      bottomNote={notices[0] ? `Latest Notice: ${notices[0].title}` : undefined}
     />
   );
 }

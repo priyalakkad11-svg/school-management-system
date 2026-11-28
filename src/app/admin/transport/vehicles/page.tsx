@@ -1,8 +1,12 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, StatusBadge } from "@/components/ui/primitives";
-import { MOCK_ROUTES } from "@/mocks/school.data";
+import { OperationsService } from "@/services/school.service";
 
-export default function VehiclesDriversPage() {
+export const dynamic = "force-dynamic";
+
+export default async function VehiclesDriversPage() {
+  const routes = await OperationsService.listRoutes();
+
   return (
     <AppShell
       role="admin"
@@ -10,7 +14,7 @@ export default function VehiclesDriversPage() {
       subtitle="RTO fitness certificates, GPS tracker IDs, and driver contact logs"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {MOCK_ROUTES.map((r) => (
+        {routes.map((r) => (
           <Card key={r.id} className="p-6 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-brand">{r.code}</span>

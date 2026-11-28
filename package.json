@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "check:tokens": "tsx scripts/check-tokens.ts",
     "check:mocks": "tsx scripts/check-mocks.ts",
+    "check:toasts": "tsx scripts/check-toasts.ts",
     "test:e2e": "playwright test",
     "test:rls": "tsx scripts/test-rls.ts",
     "test:tenant": "tsx scripts/test-tenant.ts",

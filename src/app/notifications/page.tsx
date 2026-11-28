@@ -4,13 +4,14 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, EmptyState, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_NOTIFICATIONS } from "@/mocks/school.data";
+import { getLiveNotificationsAction } from "@/app/actions/live-data.actions";
+import { markAllNotificationsReadAction } from "@/app/actions/academics-finance.actions";
 import type { NotificationItem } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 const FILTER_TABS = [
-  { key: "all", label: "All (24)" },
-  { key: "unread", label: "Unread (6)" },
+  { key: "all", label: "All Alerts" },
+  { key: "unread", label: "Unread" },
   { key: "Fees", label: "Fees & Alerts" },
   { key: "Academic", label: "Academic" },
   { key: "System", label: "System" },
@@ -18,8 +19,18 @@ const FILTER_TABS = [
 
 export default function NotificationsPage() {
   const { showToast } = useToast();
-  const [items, setItems] = React.useState<NotificationItem[]>(MOCK_NOTIFICATIONS);
+  const [items, setItems] = React.useState<NotificationItem[]>([]);
   const [filter, setFilter] = React.useState("all");
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveNotificationsAction().then((data) => {
+      if (active) setItems(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = React.useMemo(() => {
     if (filter === "all") return items;
@@ -27,7 +38,12 @@ export default function NotificationsPage() {
     return items.filter((n) => n.category === filter);
   }, [items, filter]);
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    const res = await markAllNotificationsReadAction();
+    if (!res.ok) {
+      showToast(res.error ?? "Failed marking read.", "warning");
+      return;
+    }
     setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
     showToast("All notifications marked as read.");
   };

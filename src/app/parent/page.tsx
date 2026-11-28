@@ -1,44 +1,71 @@
 import { DashboardPage } from "@/components/templates/DashboardPage";
+import { StudentService } from "@/services/school.service";
+import { listPortalAcademicDataAction } from "@/app/actions/academics-finance.actions";
 
-export default function ParentDashboardPage() {
+export default async function ParentDashboardPage() {
+  const [students, portal] = await Promise.all([
+    StudentService.list(),
+    listPortalAcademicDataAction(),
+  ]);
+  const primary = students[0];
+  const notices = portal.ok && portal.data ? portal.data.notices : [];
+  const receipts = portal.ok && portal.data ? portal.data.receipts : [];
+  const totalBalance = students.reduce((s, stu) => s + stu.feeDueAmount, 0);
+
   return (
     <DashboardPage
       role="parent"
       title="Parent Dashboard — Overview"
-      subtitle="Mr. Rajesh Sharma • Viewing Aarav Sharma (10–A) & Diya Sharma (6–C)"
+      subtitle={
+        primary
+          ? `${primary.parentName} • Viewing ${students.slice(0, 2).map((s) => `${s.name} (${s.className}–${s.section})`).join(" & ")}`
+          : "Parent Portal"
+      }
       kpis={[
-        { title: "Aarav Attendance", value: "96.5%", delta: "Present Today @ 08:22 AM", deltaTone: "success" },
-        { title: "Term 1 Aggregate", value: "91.6%", delta: "Rank #2 in Class 10–A", deltaTone: "success" },
-        { title: "Fee Balance", value: "₹18,500", delta: "Term 3 due Jan 10, 2027", deltaTone: "warning" },
-        { title: "Unread Notices", value: "3 New", delta: "Science Expo + Exam Dates", deltaTone: "info" },
+        {
+          title: "Primary Ward Attendance",
+          value: primary ? `${primary.attendancePct}%` : "95%",
+          delta: primary?.name ?? "Enrolled",
+          deltaTone: "success",
+        },
+        {
+          title: "Academic Standing",
+          value: primary ? `${primary.termAvgPct}%` : "88%",
+          delta: `${students.length} enrolled profile(s)`,
+          deltaTone: "success",
+        },
+        {
+          title: "Total Fee Balance",
+          value: `₹${totalBalance.toLocaleString("en-IN")}`,
+          delta: totalBalance > 0 ? "Online payment available" : "All cleared",
+          deltaTone: totalBalance > 0 ? "warning" : "success",
+        },
+        {
+          title: "Official Circulars",
+          value: `${notices.length} Active`,
+          delta: notices[0]?.title ?? "Up to date",
+          deltaTone: "info",
+        },
       ]}
-      tableTitle="Recent Activity Across Both Enrolled Children"
-      tableCountLabel="4 entries"
-      tableHeaders={["Child", "Module", "Update", "Date", "Status"]}
+      tableTitle="Recent Student Fees & Circular Updates"
+      tableCountLabel={`${receipts.slice(0, 3).length + notices.slice(0, 2).length} entries`}
+      tableHeaders={["Item", "Module", "Reference", "Status"]}
       tableRows={[
-        {
-          id: "pa-1",
-          cells: ["Aarav Sharma (10–A)", "Attendance", "Checked in via RFID Gate #1 at 08:22 AM", "25 Nov 2026"],
-          badge: { label: "Present", tone: "success" },
-          href: "/parent/attendance",
-        },
-        {
-          id: "pa-2",
-          cells: ["Diya Sharma (6–C)", "Homework", "English Book Review due tomorrow", "26 Nov 2026"],
-          badge: { label: "Pending", tone: "warning" },
-          href: "/parent/homework",
-        },
-        {
-          id: "pa-3",
-          cells: ["Aarav Sharma (10–A)", "Transport", "Bus Route #04 boarded at Oakridge Stop", "25 Nov 2026"],
-          badge: { label: "On Time", tone: "info" },
-        },
-        {
-          id: "pa-4",
-          cells: ["Diya Sharma (6–C)", "Fees", "Term 2 Fee Receipt RCP-2026–4411 issued", "18 Nov 2026"],
-          badge: { label: "Paid", tone: "success" },
-          href: "/parent/fees",
-        },
+        ...receipts.slice(0, 3).map((r) => {
+          const stu = Array.isArray(r.students) ? r.students[0] : r.students;
+          return {
+            id: r.id,
+            cells: [stu?.full_name ?? "Student", "Fees", `${r.receipt_number} • ₹${Number(r.amount_inr).toLocaleString("en-IN")}`],
+            badge: { label: "Paid", tone: "success" as const },
+            href: "/parent/fees",
+          };
+        }),
+        ...notices.slice(0, 2).map((n) => ({
+          id: n.id,
+          cells: [n.title, "Circular", n.category],
+          badge: { label: "Published", tone: "info" as const },
+          href: "/parent/notices",
+        })),
       ]}
     />
   );

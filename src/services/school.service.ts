@@ -1,59 +1,72 @@
 import {
-  MOCK_AUDIT_LOGS,
-  MOCK_BOOKS,
-  MOCK_COMPLAINTS,
-  MOCK_ENQUIRIES,
-  MOCK_EXAMS,
-  MOCK_FEE_TRANSACTIONS,
-  MOCK_HOSTEL_ROOMS,
-  MOCK_INVENTORY,
-  MOCK_LEAVES,
-  MOCK_MESSAGES,
-  MOCK_NOTICES,
-  MOCK_NOTIFICATIONS,
-  MOCK_PAYROLL,
-  MOCK_ROUTES,
-  MOCK_STAFF,
-  MOCK_STUDENTS,
-  MOCK_TEACHERS,
-  MONTHLY_REVENUE_ATTENDANCE_CHART,
-} from "@/mocks/school.data";
+  getLiveAuditLogsAction,
+  getLiveBooksAction,
+  getLiveComplaintsAction,
+  getLiveEnquiriesAction,
+  getLiveEventsAction,
+  getLiveExamsAction,
+  getLiveFeeTransactionsAction,
+  getLiveHostelRoomsAction,
+  getLiveInventoryAction,
+  getLiveLeavesAction,
+  getLiveMessagesAction,
+  getLiveNoticesAction,
+  getLiveNotificationsAction,
+  getLivePayrollAction,
+  getLiveRoutesAction,
+  getLiveStaffAction,
+  getLiveStudentsAction,
+  getLiveTeachersAction,
+} from "@/app/actions/live-data.actions";
 
 export const StudentService = {
-  list: async () => MOCK_STUDENTS,
-  getById: async (id: string) => MOCK_STUDENTS.find((s) => s.id === id || s.admissionId === id) ?? MOCK_STUDENTS[0],
-  listEnquiries: async () => MOCK_ENQUIRIES,
+  list: () => getLiveStudentsAction(),
+  getById: async (id: string) => {
+    const all = await getLiveStudentsAction();
+    return all.find((s) => s.id === id || s.admissionId === id) ?? all[0] ?? null;
+  },
+  listEnquiries: () => getLiveEnquiriesAction(),
 };
 
 export const StaffService = {
-  listTeachers: async () => MOCK_TEACHERS,
-  getTeacher: async (id?: string) => MOCK_TEACHERS.find((t) => t.id === id) ?? MOCK_TEACHERS[0],
-  listStaff: async () => MOCK_STAFF,
-  listLeaves: async () => MOCK_LEAVES,
-  listPayroll: async () => MOCK_PAYROLL,
+  listTeachers: () => getLiveTeachersAction(),
+  getTeacher: async (id?: string) => {
+    const all = await getLiveTeachersAction();
+    return (id ? all.find((t) => t.id === id || t.empId === id) : all[0]) ?? all[0] ?? null;
+  },
+  listStaff: () => getLiveStaffAction(),
+  listLeaves: () => getLiveLeavesAction(),
+  listPayroll: () => getLivePayrollAction(),
 };
 
 export const AcademicService = {
-  listExams: async () => MOCK_EXAMS,
-  getDashboardTrend: async () => MONTHLY_REVENUE_ATTENDANCE_CHART,
+  listExams: () => getLiveExamsAction(),
+  getDashboardTrend: async () => [
+    { month: "Jun", feeLakhs: 28, attendancePct: 92 },
+    { month: "Jul", feeLakhs: 24, attendancePct: 95 },
+    { month: "Aug", feeLakhs: 36, attendancePct: 93 },
+    { month: "Sep", feeLakhs: 21, attendancePct: 94 },
+    { month: "Oct", feeLakhs: 32, attendancePct: 96 },
+    { month: "Nov", feeLakhs: 43, attendancePct: 95.4 },
+  ],
 };
 
 export const FinanceService = {
-  listTransactions: async () => MOCK_FEE_TRANSACTIONS,
+  listTransactions: () => getLiveFeeTransactionsAction(),
 };
 
 export const OperationsService = {
-  listBooks: async () => MOCK_BOOKS,
-  listRoutes: async () => MOCK_ROUTES,
-  listHostelRooms: async () => MOCK_HOSTEL_ROOMS,
-  listInventory: async () => MOCK_INVENTORY,
-  listAuditLogs: async () => MOCK_AUDIT_LOGS,
+  listBooks: () => getLiveBooksAction(),
+  listRoutes: () => getLiveRoutesAction(),
+  listHostelRooms: () => getLiveHostelRoomsAction(),
+  listInventory: () => getLiveInventoryAction(),
+  listAuditLogs: () => getLiveAuditLogsAction(),
 };
 
 export const CommunicationService = {
-  listNotices: async () => MOCK_NOTICES,
-  listMessages: async () => MOCK_MESSAGES,
-  listComplaints: async () => MOCK_COMPLAINTS,
-  listNotifications: async () => MOCK_NOTIFICATIONS,
+  listNotices: (allowPublic = false) => getLiveNoticesAction(allowPublic),
+  listEvents: (allowPublic = false) => getLiveEventsAction(allowPublic),
+  listMessages: () => getLiveMessagesAction(),
+  listComplaints: () => getLiveComplaintsAction(),
+  listNotifications: () => getLiveNotificationsAction(),
 };
-

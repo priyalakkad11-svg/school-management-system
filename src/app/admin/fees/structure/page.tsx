@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, StatusBadge } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
+import { createFeeHeadAndStructureAction } from "@/app/actions/academics-finance.actions";
 import { formatInr } from "@/lib/utils";
 
 const INITIAL_HEADS = [
@@ -21,16 +22,26 @@ export default function FeeStructureSetupPage() {
   const [name, setName] = React.useState("");
   const [amount, setAmount] = React.useState("4500");
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const res = await createFeeHeadAndStructureAction({
+      headName: name.trim(),
+      headCode: `FH${Math.floor(10 + Math.random() * 89)}`,
+      amountInr: Number(amount) || 0,
+      dueDate: "2026-12-31",
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to add fee head.", "warning");
+      return;
+    }
     setHeads((prev) => [
       { id: `fh-${Date.now()}`, name: name.trim(), freq: "Annual", amount: Number(amount) || 0, optional: true },
       ...prev,
     ]);
     setModalOpen(false);
     setName("");
-    showToast("Fee head added to AY 2026–27 catalog.");
+    showToast("Fee head saved to AY 2026–27 catalog.");
   };
 
   return (

@@ -4,28 +4,93 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, StatusBadge, Textarea } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { listPortalAcademicDataAction, requestStudentLeaveAction } from "@/app/actions/academics-finance.actions";
 
-const INITIAL_REQUESTS = [
-  { id: "pl-1", child: "Aarav (10–A)", dates: "19 Nov 2026", reason: "Family function", status: "Approved" as const },
-  { id: "pl-2", child: "Diya (6–C)", dates: "04–05 Oct 2026", reason: "Viral fever (Doctor note)", status: "Approved" as const },
-];
+interface LeaveRow {
+  id: string;
+  child: string;
+  dates: string;
+  reason: string;
+  status: string;
+}
 
 export default function ParentLeavePage() {
   const { showToast } = useToast();
-  const [requests, setRequests] = React.useState<{ id: string; child: string; dates: string; reason: string; status: "Approved" | "Pending" }[]>(INITIAL_REQUESTS);
-  const [child, setChild] = React.useState("Aarav (10–A)");
-  const [leaveType, setLeaveType] = React.useState("Medical / Family Leave");
-  const [dates, setDates] = React.useState("29 Nov 2026 – 30 Nov 2026");
-  const [reason, setReason] = React.useState("Out-of-town family wedding");
+  const [requests, setRequests] = React.useState<LeaveRow[]>([]);
+  const [childOptions, setChildOptions] = React.useState<{ label: string; value: string }[]>([]);
+  const [selectedChild, setSelectedChild] = React.useState("");
+  const [fromDate, setFromDate] = React.useState("2026-12-02");
+  const [toDate, setToDate] = React.useState("2026-12-03");
+  const [reason, setReason] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const reload = React.useCallback(async () => {
+    const res = await listPortalAcademicDataAction();
+    if (!res.ok || !res.data) return;
+    setChildOptions(
+      res.data.students.slice(0, 6).map((s) => ({
+        label: `${s.full_name} (${s.section_name})`,
+        value: s.id,
+      })),
+    );
+    setRequests(
+      res.data.leaves.map((l) => {
+        const stu = Array.isArray(l.students) ? l.students[0] : l.students;
+        return {
+          id: l.id,
+          child: stu?.full_name ?? "Student",
+          dates: `${l.from_date} – ${l.to_date}`,
+          reason: l.reason,
+          status: l.status,
+        };
+      }),
+    );
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void listPortalAcademicDataAction().then((res) => {
+      if (!active || !res.ok || !res.data) return;
+      const cOpts = res.data.students.slice(0, 6).map((s) => ({
+        label: `${s.full_name} (${s.section_name})`,
+        value: s.id,
+      }));
+      setChildOptions(cOpts);
+      if (cOpts[0]) setSelectedChild(cOpts[0].value);
+      setRequests(
+        res.data.leaves.map((l) => {
+          const stu = Array.isArray(l.students) ? l.students[0] : l.students;
+          return {
+            id: l.id,
+            child: stu?.full_name ?? "Student",
+            dates: `${l.from_date} – ${l.to_date}`,
+            reason: l.reason,
+            status: l.status,
+          };
+        }),
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dates.trim() || !reason.trim()) return;
-    setRequests((prev) => [
-      { id: `pl-${Date.now()}`, child, dates, reason: reason.trim(), status: "Pending" },
-      ...prev,
-    ]);
-    showToast(`Leave request (${leaveType}) submitted for ${child}.`);
+    if (!fromDate || !toDate || !reason.trim()) {
+      showToast("Provide from/to dates and leave reason.", "warning");
+      return;
+    }
+    setSubmitting(true);
+    const res = await requestStudentLeaveAction({ fromDate, toDate, reason: reason.trim() });
+    setSubmitting(false);
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to submit leave application.", "warning");
+      return;
+    }
+    showToast("Leave request submitted to class teacher.", "success");
+    setReason("");
+    await reload();
   };
 
   return (
@@ -40,34 +105,30 @@ export default function ParentLeavePage() {
             <h2 className="text-lg font-bold text-ink">Request Student Leave</h2>
             <Select
               label="Select Child"
-              value={child}
-              onChange={(e) => setChild(e.target.value)}
-              options={[
-                { label: "Aarav Sharma (Class 10–A)", value: "Aarav (10–A)" },
-                { label: "Diya Sharma (Class 6–C)", value: "Diya (6–C)" },
-              ]}
-            />
-            <Select
-              label="Leave Type"
-              value={leaveType}
-              onChange={(e) => setLeaveType(e.target.value)}
-              options={[
-                { label: "Medical / Family Leave", value: "Medical / Family Leave" },
-                { label: "Academic / Sports Representation", value: "Academic / Sports Representation" },
-              ]}
+              value={selectedChild}
+              onChange={(e) => setSelectedChild(e.target.value)}
+              options={childOptions.length ? childOptions : [{ label: "Loading...", value: "" }]}
             />
             <Input
-              label="From – To Date"
-              value={dates}
-              onChange={(e) => setDates(e.target.value)}
+              label="From Date"
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+            <Input
+              label="To Date"
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
             />
             <Textarea
               label="Reason"
+              placeholder="Medical checkup, family travel..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Submit Leave Application
+            <Button type="submit" variant="primary" size="lg" disabled={submitting} className="w-full">
+              {submitting ? "Submitting..." : "Submit Leave Application"}
             </Button>
           </form>
         </Card>
@@ -89,18 +150,26 @@ export default function ParentLeavePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {requests.map((r) => (
-                  <tr key={r.id} className="hover:bg-subtle/60">
-                    <td className="py-3 px-3 text-sm font-semibold text-ink">{r.child}</td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{r.dates}</td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{r.reason}</td>
-                    <td className="py-3 px-3">
-                      <StatusBadge tone={r.status === "Approved" ? "success" : "warning"}>
-                        {r.status}
-                      </StatusBadge>
+                {requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-sm text-ink-muted">
+                      No leave applications submitted yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  requests.map((r) => (
+                    <tr key={r.id} className="hover:bg-subtle/60">
+                      <td className="py-3 px-3 text-sm font-semibold text-ink">{r.child}</td>
+                      <td className="py-3 px-3 text-sm text-ink-secondary">{r.dates}</td>
+                      <td className="py-3 px-3 text-sm text-ink-secondary">{r.reason}</td>
+                      <td className="py-3 px-3">
+                        <StatusBadge tone={r.status === "Approved" ? "success" : "warning"}>
+                          {r.status}
+                        </StatusBadge>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

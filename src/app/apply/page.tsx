@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button, Card, Input, Select, StatusBadge, Textarea } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { submitPublicEnquiryAction } from "@/app/actions/students-staff.actions";
 
 const GRADE_OPTIONS = [
   { label: "Nursery / Kindergarten", value: "KG" },
@@ -20,17 +21,40 @@ export default function ApplyAdmissionPage() {
   const [parentName, setParentName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [website, setWebsite] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
   const [submittedRef, setSubmittedRef] = React.useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!childName.trim() || !parentName.trim() || !phone.trim()) {
       showToast("Please complete child name, parent name, and phone.", "warning");
       return;
     }
-    const ref = `ENQ-${Math.floor(1000 + Math.random() * 8999)}`;
-    setSubmittedRef(ref);
-    showToast(`Admission enquiry ${ref} submitted!`);
+    setSubmitting(true);
+    try {
+      const schoolParam =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("school") ?? undefined
+          : undefined;
+      const res = await submitPublicEnquiryAction({
+        schoolCode: schoolParam,
+        applicantName: childName,
+        parentName,
+        phone,
+        applyingGrade: grade,
+        notes,
+        website,
+      });
+      if (!res.ok || !res.data) {
+        showToast(res.error ?? "Unable to submit enquiry.", "warning");
+        return;
+      }
+      setSubmittedRef(res.data.enquiryNo);
+      showToast(`Admission enquiry ${res.data.enquiryNo} saved!`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -97,10 +121,20 @@ export default function ApplyAdmissionPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
+                <input
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  className="hidden"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                />
               </div>
               <div className="sm:col-span-2 pt-2">
-                <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto">
-                  Submit Admission Enquiry
+                <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto" disabled={submitting}>
+                  {submitting ? "Submitting..." : "Submit Admission Enquiry"}
                 </Button>
               </div>
             </form>

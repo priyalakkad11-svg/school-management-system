@@ -3,11 +3,40 @@
 import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, Select, StatusBadge } from "@/components/ui/primitives";
-import { MOCK_TEACHERS } from "@/mocks/school.data";
+import { getLiveTeachersAction } from "@/app/actions/live-data.actions";
+import type { Teacher } from "@/types/domain";
 
 export default function AdminTeacherTimetablePage() {
-  const [teacherId, setTeacherId] = React.useState(MOCK_TEACHERS[0].id);
-  const teacher = MOCK_TEACHERS.find((t) => t.id === teacherId) ?? MOCK_TEACHERS[0];
+  const [teachers, setTeachers] = React.useState<Teacher[]>([]);
+  const [teacherId, setTeacherId] = React.useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveTeachersAction().then((rows) => {
+      if (!active) return;
+      setTeachers(rows);
+      if (rows[0]) setTeacherId(rows[0].id);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const teacher = teachers.find((t) => t.id === teacherId) ?? teachers[0] ?? {
+    id: "",
+    empId: "—",
+    name: "Loading Faculty...",
+    department: "General",
+    designation: "Faculty",
+    qualification: "",
+    classesAssigned: "Active Classes",
+    periodsPerWeek: 24,
+    email: "",
+    phone: "",
+    salaryGross: 0,
+    joinDate: "",
+    status: "Active" as const,
+  };
 
   return (
     <AppShell
@@ -20,7 +49,7 @@ export default function AdminTeacherTimetablePage() {
           label="Faculty Member"
           value={teacherId}
           onChange={(e) => setTeacherId(e.target.value)}
-          options={MOCK_TEACHERS.map((t) => ({ label: `${t.name} (${t.department})`, value: t.id }))}
+          options={teachers.map((t) => ({ label: `${t.name} (${t.department})`, value: t.id }))}
         />
       </div>
 

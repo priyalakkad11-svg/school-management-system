@@ -1,16 +1,28 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_AUDIT_LOGS } from "@/mocks/school.data";
+import { getLiveAuditLogsAction } from "@/app/actions/live-data.actions";
 import type { AuditLogEntry } from "@/types/domain";
 
 export default function AuditLogsPage() {
+  const [rows, setRows] = React.useState<AuditLogEntry[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveAuditLogsAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<AuditLogEntry>
       role="admin"
       title="Immutable System Audit Logs"
       subtitle="Chronological trace of fee edits, marks locks, attendance updates, and RBAC changes"
-      rows={MOCK_AUDIT_LOGS}
+      rows={rows}
       searchPlaceholder="Search actor, module, IP, action..."
       columns={[
         { id: "ts", header: "Timestamp", accessor: (r) => r.timestamp },

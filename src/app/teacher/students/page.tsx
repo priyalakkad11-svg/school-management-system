@@ -4,12 +4,50 @@ import React from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import type { Student } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
+const EMPTY_STUDENT: Student = {
+  id: "",
+  admissionId: "—",
+  rollNo: "—",
+  name: "Loading Student...",
+  className: "—",
+  section: "A",
+  dob: "—",
+  gender: "Male",
+  bloodGroup: "O+",
+  house: "Emerald",
+  parentName: "—",
+  parentPhone: "—",
+  parentEmail: "",
+  address: "—",
+  transportRoute: "—",
+  attendancePct: 95,
+  termAvgPct: 88,
+  feeStatus: "Paid",
+  feeDueAmount: 0,
+  status: "Active",
+};
+
 export default function TeacherStudentsPage() {
-  const [selectedId, setSelectedId] = React.useState(MOCK_STUDENTS[0].id);
-  const selected = MOCK_STUDENTS.find((s) => s.id === selectedId) ?? MOCK_STUDENTS[0];
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [selectedId, setSelectedId] = React.useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveStudentsAction().then((rows) => {
+      if (!active) return;
+      setStudents(rows);
+      if (rows[0]) setSelectedId(rows[0].id);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const selected = students.find((s) => s.id === selectedId) ?? students[0] ?? EMPTY_STUDENT;
 
   return (
     <AppShell
@@ -20,8 +58,8 @@ export default function TeacherStudentsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <Card className="lg:col-span-7 p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-ink">Class 10–A Directory (40)</h2>
-            <span className="text-xs text-ink-muted">{MOCK_STUDENTS.length} records shown</span>
+            <h2 className="text-base font-bold text-ink">Class 10–A Directory</h2>
+            <span className="text-xs text-ink-muted">{students.length} records shown</span>
           </div>
 
           <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Class student directory">
@@ -35,7 +73,7 @@ export default function TeacherStudentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {MOCK_STUDENTS.map((s) => {
+                {students.map((s) => {
                   const active = s.id === selected.id;
                   const lowAtt = s.attendancePct < 85;
                   return (

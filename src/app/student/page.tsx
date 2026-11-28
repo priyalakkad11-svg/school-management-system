@@ -1,66 +1,68 @@
 import { DashboardPage } from "@/components/templates/DashboardPage";
-import { StudentService } from "@/services/school.service";
+import { AcademicService, StudentService } from "@/services/school.service";
+import { listPortalAcademicDataAction } from "@/app/actions/academics-finance.actions";
 
 export default async function StudentDashboardPage() {
-  await StudentService.getById("ADM-2026-0142");
+  const [students, exams, portal] = await Promise.all([
+    StudentService.list(),
+    AcademicService.listExams(),
+    listPortalAcademicDataAction(),
+  ]);
+  const stu = students[0];
+  const homework = portal.ok && portal.data ? portal.data.homework : [];
+  const nextExam = exams[0];
 
   return (
     <DashboardPage
       role="student"
       title="Student Dashboard"
-      subtitle="Aarav Sharma • Class 10–A • Roll #01"
+      subtitle={
+        stu
+          ? `${stu.name} • ${stu.className}–${stu.section} • Roll #${stu.rollNo}`
+          : "Student Portal"
+      }
       kpis={[
         {
           title: "My Attendance",
-          value: "96.5%",
-          delta: "138 / 143 Days Present",
+          value: stu ? `${stu.attendancePct}%` : "95%",
+          delta: "Current Academic Year",
           deltaTone: "success",
         },
         {
-          title: "Pending Homework",
-          value: "2 Due",
-          delta: "Math & Physics this week",
-          deltaTone: "warning",
+          title: "Assignments",
+          value: `${homework.length} Active`,
+          delta: homework[0]?.title ?? "Up to date",
+          deltaTone: homework.length > 0 ? "warning" : "success",
         },
         {
           title: "Next Exam",
-          value: "Dec 08",
-          delta: "Mid-Term Mathematics Paper",
+          value: nextExam ? nextExam.dateWindow : "TBA",
+          delta: nextExam ? nextExam.name : "No scheduled exam",
           deltaTone: "info",
         },
         {
-          title: "Fee Status",
-          value: "₹0 Due",
-          delta: "Term 2 Paid in Full",
-          deltaTone: "success",
+          title: "Fee Balance",
+          value: stu ? `₹${stu.feeDueAmount.toLocaleString("en-IN")}` : "₹0",
+          delta: stu && stu.feeDueAmount > 0 ? "Pending tuition balance" : "Cleared",
+          deltaTone: stu && stu.feeDueAmount > 0 ? "warning" : "success",
         },
       ]}
-      tableTitle="Today's Timetable & Homework Reminders"
-      tableCountLabel="4 entries"
-      tableHeaders={["Time", "Subject", "Teacher", "Room", "Status"]}
+      tableTitle="Active Homework & Exam Schedule"
+      tableCountLabel={`${homework.length + exams.slice(0, 2).length} entries`}
+      tableHeaders={["Item", "Type", "Due / Window", "Status"]}
       tableRows={[
-        {
-          id: "st-1",
-          cells: ["08:30 – 09:15", "Mathematics", "Mrs. Kavita Nair", "Room 204"],
-          badge: { label: "Completed", tone: "success" },
-          href: "/student/timetable",
-        },
-        {
-          id: "st-2",
-          cells: ["09:20 – 10:05", "Physics", "Mr. Arjun Menon", "Lab 2"],
-          badge: { label: "In Progress", tone: "primary" },
+        ...homework.slice(0, 3).map((h) => ({
+          id: h.id,
+          cells: [h.title, "Homework", h.due_date],
+          badge: { label: h.status, tone: "warning" as const },
           href: "/student/homework",
-        },
-        {
-          id: "st-3",
-          cells: ["10:25 – 11:10", "English Literature", "Ms. Clara D'Souza", "Room 204"],
-          badge: { label: "Upcoming", tone: "info" },
-        },
-        {
-          id: "st-4",
-          cells: ["11:30 – 12:15", "Computer Science", "Mr. Vikram Rao", "CS Lab 1"],
-          badge: { label: "Upcoming", tone: "info" },
-        },
+        })),
+        ...exams.slice(0, 2).map((ex) => ({
+          id: ex.id,
+          cells: [ex.name, "Examination", ex.dateWindow],
+          badge: { label: ex.status, tone: "info" as const },
+          href: "/student/results",
+        })),
       ]}
     />
   );

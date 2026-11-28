@@ -1,17 +1,29 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_PAYROLL } from "@/mocks/school.data";
+import { getLivePayrollAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
 import type { PayrollRecord } from "@/types/domain";
 
 export default function PayrollSalaryListPage() {
+  const [rows, setRows] = React.useState<PayrollRecord[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLivePayrollAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<PayrollRecord>
       role="admin"
       title="Monthly Payroll & Salary Disbursement"
-      subtitle="November 2026 Salary Register with PF, TDS, Professional Tax, and Bank UTR"
-      rows={MOCK_PAYROLL}
+      subtitle="Salary Register with PF, TDS, Professional Tax, and Bank UTR"
+      rows={rows}
       searchPlaceholder="Search employee ID, name, bank ref..."
       primaryAction={{ label: "Open Printable Salary Slip", href: "/admin/staff/salary-slip" }}
       columns={[

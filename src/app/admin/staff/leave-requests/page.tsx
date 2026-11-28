@@ -4,16 +4,32 @@ import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
 import { Button } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_LEAVES } from "@/mocks/school.data";
+import { getLiveLeavesAction } from "@/app/actions/live-data.actions";
+import { reviewLeaveRequestAction } from "@/app/actions/students-staff.actions";
 import type { LeaveRequest } from "@/types/domain";
 
 export default function LeaveRequestsApprovalPage() {
   const { showToast } = useToast();
-  const [leaves, setLeaves] = React.useState<LeaveRequest[]>(MOCK_LEAVES);
+  const [leaves, setLeaves] = React.useState<LeaveRequest[]>([]);
 
-  const updateDecision = (id: string, status: "Approved" | "Rejected") => {
+  React.useEffect(() => {
+    let active = true;
+    void getLiveLeavesAction().then((data) => {
+      if (active) setLeaves(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const updateDecision = async (id: string, status: "Approved" | "Rejected") => {
+    const res = await reviewLeaveRequestAction({ leaveId: id, decision: status });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to update leave.", "warning");
+      return;
+    }
     setLeaves((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
-    showToast(`Leave request marked ${status}.`);
+    showToast(`Leave request marked ${status} (leave balance synced).`);
   };
 
   return (

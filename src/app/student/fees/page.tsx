@@ -4,22 +4,113 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatCard, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { listPortalAcademicDataAction, payPortalFeeAction } from "@/app/actions/academics-finance.actions";
 
-const INSTALLMENTS = [
-  { id: "f1", title: "Term 1 Tuition & Admission", due: "10 Apr 2026", amount: "₹22,000", mode: "NetBanking", status: "Paid", receipt: "RCP-2026-1021" },
-  { id: "f2", title: "Term 2 Tuition & Lab", due: "10 Aug 2026", amount: "₹18,500", mode: "UPI (GPay)", status: "Paid", receipt: "RCP-2026-4410" },
-  { id: "f3", title: "Annual Transport (Q1–Q2)", due: "15 Sep 2026", amount: "₹15,000", mode: "Card", status: "Paid", receipt: "RCP-2026-5012" },
-  { id: "f4", title: "Term 3 Tuition Fee", due: "10 Jan 2027", amount: "₹18,500", mode: "—", status: "Due Soon", receipt: "Pay Online Now" },
-];
+interface FeeRow {
+  id: string;
+  title: string;
+  date: string;
+  amountInr: number;
+  mode: string;
+  status: "Paid" | "Due Soon";
+  receipt: string;
+}
 
 export default function StudentFeesPage() {
   const { showToast } = useToast();
-  const [paidTerm3, setPaidTerm3] = React.useState(false);
+  const [studentId, setStudentId] = React.useState("");
+  const [balanceDue, setBalanceDue] = React.useState(0);
+  const [rows, setRows] = React.useState<FeeRow[]>([]);
+  const [paying, setPaying] = React.useState(false);
 
-  const handlePayNow = () => {
-    setPaidTerm3(true);
-    showToast("Payment of ₹18,500 completed! Receipt RCP-2027-5501 generated.");
+  const loadData = React.useCallback(async () => {
+    const res = await listPortalAcademicDataAction();
+    if (!res.ok || !res.data) return;
+    const stu = res.data.students[0];
+    if (stu) {
+      setStudentId(stu.id);
+      setBalanceDue(Number(stu.fee_balance_inr ?? 0));
+    }
+    const receipts: FeeRow[] = res.data.receipts.map((r) => ({
+      id: r.id,
+      title: `Fee Receipt ${r.receipt_number}`,
+      date: new Date(r.paid_at).toLocaleDateString("en-IN"),
+      amountInr: Number(r.amount_inr),
+      mode: r.payment_mode,
+      status: "Paid",
+      receipt: r.receipt_number,
+    }));
+    if (stu && Number(stu.fee_balance_inr ?? 0) > 0) {
+      receipts.unshift({
+        id: "current-due",
+        title: "Current Term Tuition Balance",
+        date: "Current Term",
+        amountInr: Number(stu.fee_balance_inr),
+        mode: "—",
+        status: "Due Soon",
+        receipt: "Pay Online Now",
+      });
+    }
+    setRows(receipts);
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void listPortalAcademicDataAction().then((res) => {
+      if (!active || !res.ok || !res.data) return;
+      const stu = res.data.students[0];
+      if (stu) {
+        setStudentId(stu.id);
+        setBalanceDue(Number(stu.fee_balance_inr ?? 0));
+      }
+      const receipts: FeeRow[] = res.data.receipts.map((r) => ({
+        id: r.id,
+        title: `Fee Receipt ${r.receipt_number}`,
+        date: new Date(r.paid_at).toLocaleDateString("en-IN"),
+        amountInr: Number(r.amount_inr),
+        mode: r.payment_mode,
+        status: "Paid",
+        receipt: r.receipt_number,
+      }));
+      if (stu && Number(stu.fee_balance_inr ?? 0) > 0) {
+        receipts.unshift({
+          id: "current-due",
+          title: "Current Term Tuition Balance",
+          date: "Current Term",
+          amountInr: Number(stu.fee_balance_inr),
+          mode: "—",
+          status: "Due Soon",
+          receipt: "Pay Online Now",
+        });
+      }
+      setRows(receipts);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handlePayNow = async () => {
+    if (!studentId || balanceDue <= 0) return;
+    setPaying(true);
+    const res = await payPortalFeeAction({
+      studentId,
+      amountInr: balanceDue,
+      paymentMode: "UPI",
+    });
+    setPaying(false);
+    if (!res.ok || !res.data) {
+      showToast(res.error ?? "Payment failed.", "warning");
+      return;
+    }
+    showToast(
+      `Payment of ₹${balanceDue.toLocaleString("en-IN")} completed! Receipt ${res.data.receiptNumber} generated.`,
+      "success",
+    );
+    await loadData();
   };
+
+  const paidTotal = rows.filter((r) => r.status === "Paid").reduce((sum, r) => sum + r.amountInr, 0);
 
   return (
     <AppShell
@@ -28,33 +119,33 @@ export default function StudentFeesPage() {
       subtitle="Annual tuition breakdown, scholarship credit, and downloadable fee receipts"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title="Total Annual Fee" value="₹74,000" delta="AY 2026–27 Tuition + Lab" />
+        <StatCard title="Total Fee Billed" value={`₹${(paidTotal + balanceDue).toLocaleString("en-IN")}`} delta="Current Academic Year" />
         <StatCard
           title="Paid to Date"
-          value={paidTerm3 ? "₹74,000" : "₹55,500"}
-          delta={paidTerm3 ? "All 4 installments cleared" : "3 installments cleared"}
+          value={`₹${paidTotal.toLocaleString("en-IN")}`}
+          delta={`${rows.filter((r) => r.status === "Paid").length} receipts issued`}
         />
         <StatCard
           title="Current Balance Due"
-          value={paidTerm3 ? "₹0" : "₹18,500"}
-          delta={paidTerm3 ? "No pending dues" : "Term 3 due Jan 10 2027"}
-          deltaTone={paidTerm3 ? "success" : "warning"}
+          value={`₹${balanceDue.toLocaleString("en-IN")}`}
+          delta={balanceDue <= 0 ? "No pending dues" : "Due this term"}
+          deltaTone={balanceDue <= 0 ? "success" : "warning"}
         />
-        <StatCard title="Scholarship" value="10% Merit" delta="-₹7,400 applied" />
+        <StatCard title="Payment Gateway" value="UPI / Card" delta="Gapless FY Receipts" />
       </div>
 
       <Card className="p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-ink">Fee Schedule &amp; Payment History</h2>
-          <span className="text-xs text-ink-muted">{INSTALLMENTS.length} entries</span>
+          <span className="text-xs text-ink-muted">{rows.length} entries</span>
         </div>
 
         <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Fee schedule table">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-subtle border-b border-line">
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Installment</th>
-                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Due Date</th>
+                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Installment / Receipt</th>
+                <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Date</th>
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Amount</th>
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Payment Mode</th>
                 <th className="py-2.5 px-4 text-xs font-semibold text-ink-secondary">Status</th>
@@ -62,49 +153,42 @@ export default function StudentFeesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {INSTALLMENTS.map((row) => {
-                const isDueRow = row.id === "f4" && !paidTerm3;
-                const displayStatus = row.id === "f4" && paidTerm3 ? "Paid" : row.status;
-                return (
-                  <tr key={row.id} className="hover:bg-subtle/60">
-                    <td className="py-3.5 px-4 text-sm font-semibold text-ink">{row.title}</td>
-                    <td className="py-3.5 px-4 text-sm text-ink-secondary">{row.due}</td>
-                    <td className="py-3.5 px-4 text-sm font-medium text-ink">{row.amount}</td>
-                    <td className="py-3.5 px-4 text-sm text-ink-secondary">
-                      {row.id === "f4" && paidTerm3 ? "UPI (Instant)" : row.mode}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge tone={displayStatus === "Paid" ? "success" : "warning"}>
-                        {displayStatus}
-                      </StatusBadge>
-                    </td>
-                    <td className="py-3.5 px-4 text-sm font-medium text-brand">
-                      {isDueRow ? (
-                        <button
-                          type="button"
-                          onClick={handlePayNow}
-                          className="font-semibold text-brand hover:underline cursor-pointer"
-                        >
-                          Pay Online Now
-                        </button>
-                      ) : row.id === "f4" ? (
-                        "RCP-2027-5501"
-                      ) : (
-                        row.receipt
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {rows.map((row) => (
+                <tr key={row.id} className="hover:bg-subtle/60">
+                  <td className="py-3.5 px-4 text-sm font-semibold text-ink">{row.title}</td>
+                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{row.date}</td>
+                  <td className="py-3.5 px-4 text-sm font-medium text-ink">₹{row.amountInr.toLocaleString("en-IN")}</td>
+                  <td className="py-3.5 px-4 text-sm text-ink-secondary">{row.mode}</td>
+                  <td className="py-3.5 px-4">
+                    <StatusBadge tone={row.status === "Paid" ? "success" : "warning"}>
+                      {row.status}
+                    </StatusBadge>
+                  </td>
+                  <td className="py-3.5 px-4 text-sm font-medium text-brand">
+                    {row.status === "Due Soon" ? (
+                      <button
+                        type="button"
+                        disabled={paying}
+                        onClick={() => void handlePayNow()}
+                        className="font-semibold text-brand hover:underline cursor-pointer"
+                      >
+                        {paying ? "Paying..." : "Pay Online Now"}
+                      </button>
+                    ) : (
+                      row.receipt
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </Card>
 
-      {!paidTerm3 ? (
+      {balanceDue > 0 ? (
         <div>
-          <Button variant="primary" size="lg" onClick={handlePayNow}>
-            Pay ₹18,500 Online (UPI / Card / NetBanking)
+          <Button variant="primary" size="lg" disabled={paying} onClick={() => void handlePayNow()}>
+            {paying ? "Processing..." : `Pay ₹${balanceDue.toLocaleString("en-IN")} Online (UPI / Card / NetBanking)`}
           </Button>
         </div>
       ) : null}

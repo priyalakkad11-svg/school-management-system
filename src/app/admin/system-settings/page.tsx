@@ -4,6 +4,10 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Checkbox, Input, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import {
+  exportSchoolComplianceArchiveAction,
+  saveSystemSecurityPolicyAction,
+} from "@/app/actions/academics-finance.actions";
 
 export default function BackupSystemSettingsPage() {
   const { showToast } = useToast();
@@ -12,10 +16,42 @@ export default function BackupSystemSettingsPage() {
   const [smsProvider, setSmsProvider] = React.useState("Twilio India + Meta WhatsApp Cloud");
   const [twoFaRequired, setTwoFaRequired] = React.useState(true);
   const [autoLockMarks, setAutoLockMarks] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast("Backup policy & security rules saved.");
+    setSaving(true);
+    const res = await saveSystemSecurityPolicyAction({
+      backupSchedule,
+      retention,
+      smsProvider,
+      twoFaRequired,
+      autoLockMarks,
+    });
+    setSaving(false);
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to save system settings.", "warning");
+      return;
+    }
+    showToast("Backup policy & security rules saved.", "success");
+  };
+
+  const handleBackup = async () => {
+    setSaving(true);
+    const res = await exportSchoolComplianceArchiveAction();
+    setSaving(false);
+    if (!res.ok || !res.data) {
+      showToast(res.error ?? "Backup export failed.", "warning");
+      return;
+    }
+    const blob = new Blob([res.data.json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `school-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded school data archive snapshot.", "success");
   };
 
   return (
@@ -60,8 +96,8 @@ export default function BackupSystemSettingsPage() {
               onChange={setAutoLockMarks}
             />
             <div className="pt-2">
-              <Button type="submit" variant="primary">
-                Save System Settings
+              <Button type="submit" variant="primary" disabled={saving}>
+                {saving ? "Saving..." : "Save System Settings"}
               </Button>
             </div>
           </form>
@@ -73,13 +109,10 @@ export default function BackupSystemSettingsPage() {
             <StatusBadge tone="success">Healthy</StatusBadge>
           </div>
           <p className="text-sm text-ink-secondary">
-            Nightly encrypted snapshot completed at 02:04 AM IST (4.2 GB • AES-256 verified).
+            Nightly encrypted snapshot &amp; tenant compliance JSON archive export on demand.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => showToast("Triggered manual encrypted snapshot (#BKP-2026-1125).")}
-          >
-            Trigger Manual Backup Now
+          <Button variant="outline" disabled={saving} onClick={() => void handleBackup()}>
+            Export Tenant Archive Now
           </Button>
         </Card>
       </div>

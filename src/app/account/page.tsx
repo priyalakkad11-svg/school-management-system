@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
 import { DEMO_USERS } from "@/lib/auth";
+import { uploadAccountAvatarAction } from "@/app/actions/auth.actions";
 import { AuthService } from "@/services/auth.service";
 
 const LANGUAGES = [
@@ -77,13 +78,23 @@ export default function AccountSettingsPage() {
             </p>
           </div>
           <StatusBadge tone="success">2FA Enabled</StatusBadge>
-          <Button
-            variant="outline"
-            className="mt-2"
-            onClick={() => showToast("Profile photo stored in private avatars bucket.")}
-          >
+          <label className="mt-2 inline-flex items-center justify-center rounded-md border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-subtle cursor-pointer min-h-11">
             Change Profile Photo
-          </Button>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="sr-only"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const fd = new FormData();
+                fd.set("file", f);
+                const r = await uploadAccountAvatarAction(fd);
+                if (r.ok) showToast("Profile photo stored in private avatars bucket.");
+                else showToast(r.error ?? "Upload failed.", "warning");
+              }}
+            />
+          </label>
         </Card>
 
         <Card className="lg:col-span-8 p-6">

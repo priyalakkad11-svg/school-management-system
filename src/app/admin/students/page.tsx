@@ -1,17 +1,29 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
 import type { Student } from "@/types/domain";
 
 export default function AdminStudentsListPage() {
+  const [rows, setRows] = React.useState<Student[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveStudentsAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<Student>
       role="admin"
       title="Students Directory"
-      subtitle="Enrolled Students (2,480 across Nursery to Grade 12)"
-      rows={MOCK_STUDENTS}
+      subtitle={`Enrolled Students (${rows.length} loaded from database)`}
+      rows={rows}
       searchPlaceholder="Name, Admission ID, Phone..."
       enableBulkSelect
       bulkActionLabel="Send Fee / Circular Alert"

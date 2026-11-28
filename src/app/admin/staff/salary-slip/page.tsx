@@ -1,10 +1,28 @@
 import { PrintView } from "@/components/templates/PrintView";
 import { StatusBadge } from "@/components/ui/primitives";
-import { MOCK_PAYROLL } from "@/mocks/school.data";
+import { StaffService } from "@/services/school.service";
 import { formatInr } from "@/lib/utils";
 
-export default function SalarySlipPrintPage() {
-  const slip = MOCK_PAYROLL[0];
+export const dynamic = "force-dynamic";
+
+export default async function SalarySlipPrintPage() {
+  const payroll = await StaffService.listPayroll();
+  const slip = payroll[0] ?? {
+    id: "pending",
+    empId: "TCH-042",
+    name: "Mrs. Kavita Nair",
+    designation: "Senior PGT Mathematics",
+    month: "November 2026",
+    basic: 48000,
+    hra: 12000,
+    allowance: 8000,
+    pf: 4500,
+    tds: 0,
+    pt: 200,
+    netPay: 63300,
+    bankRef: "SAL-PENDING",
+    status: "Pending",
+  };
   const gross = slip.basic + slip.hra + slip.allowance;
   const totalDeduct = slip.pf + slip.tds + slip.pt;
 

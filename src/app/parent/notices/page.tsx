@@ -4,24 +4,56 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { acknowledgeNoticeAction } from "@/app/actions/academics-finance.actions";
+import { getLiveNoticesAction } from "@/app/actions/live-data.actions";
 
-const CIRCULARS = [
-  { id: "pc-1", title: "Parent-Teacher Meeting (Term 1 Review)", audience: "Classes 1–12 Parents", published: "24 Nov 2026", eventDate: "05 Dec 2026", ack: "RSVP Confirmed", tone: "success" as const },
-  { id: "pc-2", title: "Annual Science & Robotics Expo", audience: "All Parents", published: "20 Nov 2026", eventDate: "12 Dec 2026", ack: "Confirm RSVP", tone: "primary" as const },
-  { id: "pc-3", title: "Winter Uniform & Timing Circular", audience: "All Students", published: "18 Nov 2026", eventDate: "01 Dec 2026", ack: "Mark Read", tone: "neutral" as const },
-];
+interface NoticeRow {
+  id: string;
+  title: string;
+  audience: string;
+  published: string;
+  eventDate: string;
+  ack: string;
+  tone: "success" | "primary" | "neutral";
+}
 
 export default function ParentNoticesPage() {
   const { showToast } = useToast();
-  const [items, setItems] = React.useState(CIRCULARS);
+  const [items, setItems] = React.useState<NoticeRow[]>([]);
 
-  const acknowledge = (id: string) => {
+  React.useEffect(() => {
+    let active = true;
+    void getLiveNoticesAction().then((notices) => {
+      if (!active) return;
+      setItems(
+        notices.map((n, idx) => ({
+          id: n.id,
+          title: n.title,
+          audience: n.audience,
+          published: n.date,
+          eventDate: n.eventDate ?? n.date,
+          ack: idx === 0 ? "RSVP Confirmed" : "Confirm Read",
+          tone: idx === 0 ? "success" : "primary",
+        })),
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const acknowledge = async (row: NoticeRow) => {
+    const res = await acknowledgeNoticeAction({ noticeId: row.id, title: row.title });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to acknowledge circular.", "warning");
+      return;
+    }
     setItems((prev) =>
       prev.map((c) =>
-        c.id === id ? { ...c, ack: "RSVP Confirmed", tone: "success" as const } : c,
+        c.id === row.id ? { ...c, ack: "Acknowledged", tone: "success" as const } : c,
       ),
     );
-    showToast("Acknowledged school circular.");
+    showToast("Acknowledged school circular.", "success");
   };
 
   return (
@@ -59,7 +91,7 @@ export default function ParentNoticesPage() {
                   <td className="py-3.5 px-4">
                     <button
                       type="button"
-                      onClick={() => acknowledge(item.id)}
+                      onClick={() => void acknowledge(item)}
                       className="cursor-pointer rounded-full"
                     >
                       <StatusBadge tone={item.tone}>{item.ack}</StatusBadge>

@@ -4,11 +4,27 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveRoutesAction, getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import type { Student, TransportRoute } from "@/types/domain";
 
 export default function StudentTransportAssignmentPage() {
   const { showToast } = useToast();
-  const [route, setRoute] = React.useState("Route #04 (Baner – Oakridge Express)");
+  const [routes, setRoutes] = React.useState<TransportRoute[]>([]);
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [route, setRoute] = React.useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([getLiveRoutesAction(), getLiveStudentsAction()]).then(([rRows, sRows]) => {
+      if (!active) return;
+      setRoutes(rRows);
+      setStudents(sRows);
+      if (rRows[0]) setRoute(`${rRows[0].code} (${rRows[0].title})`);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AppShell
@@ -16,7 +32,7 @@ export default function StudentTransportAssignmentPage() {
       title="Student Transport & Stop Allocation"
       subtitle="Map students to morning/afternoon bus routes and auto-bill transport fees"
       actions={
-        <Button variant="primary" onClick={() => showToast(`Updated bus stop roster for ${route}.`)}>
+        <Button variant="primary" onClick={() => showToast(`Updated bus stop roster for ${route || "selected route"}.`)}>
           Save Route Manifest
         </Button>
       }
@@ -26,11 +42,11 @@ export default function StudentTransportAssignmentPage() {
           label="Bus Route"
           value={route}
           onChange={(e) => setRoute(e.target.value)}
-          options={[
-            { label: "Route #04 (Baner – Oakridge Express)", value: "Route #04 (Baner – Oakridge Express)" },
-            { label: "Route #01 (Kothrud – Paud Road)", value: "Route #01 (Kothrud – Paud Road)" },
-            { label: "Route #07 (Wakad – Hinjewadi Ph 1)", value: "Route #07 (Wakad – Hinjewadi Ph 1)" },
-          ]}
+          options={
+            routes.length > 0
+              ? routes.map((rt) => ({ label: `${rt.code} (${rt.title})`, value: `${rt.code} (${rt.title})` }))
+              : [{ label: "Route #01", value: "Route #01" }]
+          }
         />
       </div>
 
@@ -47,7 +63,7 @@ export default function StudentTransportAssignmentPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {MOCK_STUDENTS.map((s) => (
+              {students.map((s) => (
                 <tr key={s.id}>
                   <td className="py-3.5 px-4 text-sm font-bold text-ink">{s.admissionId}</td>
                   <td className="py-3.5 px-4 text-sm text-ink">{s.name}</td>

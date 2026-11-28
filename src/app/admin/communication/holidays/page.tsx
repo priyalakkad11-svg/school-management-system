@@ -4,6 +4,7 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, StatusBadge } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
+import { addSchoolHolidayAction } from "@/app/actions/academics-finance.actions";
 
 const HOLIDAYS = [
   { id: "h1", date: "25 Dec 2026", title: "Christmas Day", type: "Gazetted Holiday" },
@@ -19,14 +20,24 @@ export default function HolidayListPage() {
   const [date, setDate] = React.useState("");
   const [title, setTitle] = React.useState("");
 
-  const addHoliday = (e: React.FormEvent) => {
+  const addHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !date.trim()) return;
+    const isoDate = /^\d{4}-\d{2}-\d{2}$/.test(date.trim()) ? date.trim() : new Date().toISOString().slice(0, 10);
+    const res = await addSchoolHolidayAction({
+      title: title.trim(),
+      holidayDate: isoDate,
+      category: "Academic",
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to save holiday.", "warning");
+      return;
+    }
     setHolidays((prev) => [{ id: `h-${Date.now()}`, date, title, type: "Academic Break" }, ...prev]);
     setOpen(false);
     setDate("");
     setTitle("");
-    showToast("Added holiday to academic calendar.");
+    showToast("Saved holiday to academic calendar.");
   };
 
   return (

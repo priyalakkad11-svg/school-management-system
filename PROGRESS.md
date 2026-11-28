@@ -58,25 +58,25 @@
 - [x] C5: Academic year rollover (promote/detain/transfer + fee carry-forward + read-only archive via `/admin/students/promotion`)
 
 ### D. Module Loop — P0 (Pilot-Ready)
-- [ ] D1: `1` Auth retrofit (`school_id`, `school_code`, MFA for `super_admin`)
-- [ ] D2: `2` School Setup retrofit (scoped by `school_id` + onboarding/flexible structure)
-- [ ] D3: `3` Students, Guardians (`parent_students`) & Admissions (`/apply` live + honeypot + rate limit)
-- [ ] D4: `4` Teachers & Staff (full profiles, qualifications, class assignments)
-- [ ] D5: `5` Attendance & Timetable (edit lock window, absent alerts queue, teacher/room conflict detection)
-- [ ] D6: `6` Exams, Marks & Report Cards (scales, terms/weightage, marks lock/audited unlock, QR `/verify/[token]`)
-- [ ] D7: `7` Fees & Receipts (structures, installments, scholarships/concessions, late fee, partial payment, audited refunds, gapless receipts, defaulters, payment stub)
-- [ ] D8: `9` Notices, Messages & Notifications (SMTP email adapter, SMS/WhatsApp stubs, delivery log, class/section/role targeting)
-- [ ] D9: `11` Teacher, Student & Parent Portals (zero inline static data; LMS submissions & grading via private Storage + signed URLs; multi-child switcher)
-- [ ] D10: `12` Common (`/notifications`, `/account` real avatar upload, `/search`, `/help` tickets)
-- [ ] D-Milestone: Write `PILOT-READY.md`
+- [x] D1: `1` Auth retrofit (`school_id`, `school_code`, MFA for `super_admin`)
+- [x] D2: `2` School Setup retrofit (scoped by `school_id` + onboarding/flexible structure)
+- [x] D3: `3` Students, Guardians (`parent_students`) & Admissions (`/apply` live + honeypot + rate limit)
+- [x] D4: `4` Teachers & Staff (full profiles, qualifications, class assignments)
+- [x] D5: `5` Attendance & Timetable (edit lock window, absent alerts queue, teacher/room conflict detection)
+- [x] D6: `6` Exams, Marks & Report Cards (scales, terms/weightage, marks lock/audited unlock, QR `/verify/[token]`)
+- [x] D7: `7` Fees & Receipts (structures, installments, scholarships/concessions, late fee, partial payment, audited refunds, gapless receipts, defaulters, payment stub)
+- [x] D8: `9` Notices, Messages & Notifications (SMTP email adapter, SMS/WhatsApp stubs, delivery log, class/section/role targeting)
+- [x] D9: `11` Teacher, Student & Parent Portals (zero inline static data; LMS submissions & grading via private Storage + signed URLs; multi-child switcher)
+- [x] D10: `12` Common (`/notifications`, `/account` real avatar upload, `/search`, `/help` tickets)
+- [x] D-Milestone: Write `PILOT-READY.md`
 
 ### D. Module Loop — P1
-- [ ] D11: `8` Library, Transport & Hostel (tenant CRUD + issue/return + fines + allocations)
-- [ ] D12: `10` Reports, Inventory, Documents/Certificates (QR `/verify/[token]`), Audit Logs, System Settings
-- [ ] D13: `13` Public Pages Data (live DB notices, events, `/s/[school_code]`)
+- [x] D11: `8` Library, Transport & Hostel (tenant CRUD + issue/return + fines + allocations)
+- [x] D12: `10` Reports, Inventory, Documents/Certificates (QR `/verify/[token]`), Audit Logs, System Settings
+- [x] D13: `13` Public Pages Data (live DB notices, events, `/s/[school_code]`)
 
 ### E–I. Verification, Scale, Security, Docs & Leftovers
-- [ ] E1: No Fake Actions — audit all `159` `showToast(` calls + add `pnpm check:toasts` + `pnpm check:mocks` = 0
+- [x] E1: No Fake Actions — audit all `159` `showToast(` calls + add `pnpm check:toasts` + `pnpm check:mocks` = 0
 - [ ] F1: Composite `(school_id, ...)` indexes, SQL counter views/RPC, 3-school `10,000+` student seed + `EXPLAIN ANALYZE` (`< 300ms`)
 - [ ] G1: DB rate limits + cleanup, `/api/health`, `error_logs` table + stub, soft-delete purge design, per-school CSV/JSON export & offboarding, guardian consent
 - [ ] H1: `docs/DEPLOY.md`, `docs/OPERATIONS.md`, `docs/SCHOOL-ADMIN-GUIDE.md`, update `/privacy` & `/terms` (`NEEDS LEGAL REVIEW`)

@@ -14,11 +14,12 @@ import {
   StatusBadge,
 } from "@/components/ui/primitives";
 import {
-  MOCK_BOOKS,
-  MOCK_FEE_TRANSACTIONS,
-  MOCK_NOTICES,
-  MOCK_STUDENTS,
-} from "@/mocks/school.data";
+  getLiveBooksAction,
+  getLiveFeeTransactionsAction,
+  getLiveNoticesAction,
+  getLiveStudentsAction,
+} from "@/app/actions/live-data.actions";
+import type { FeeTransaction, LibraryBook, NoticeItem, Student } from "@/types/domain";
 import { formatInr } from "@/lib/utils";
 
 const CATEGORIES = [
@@ -34,35 +35,58 @@ function SearchResultsContent() {
   const initialQuery = searchParams.get("q") ?? "Aarav";
   const [query, setQuery] = React.useState(initialQuery);
   const [category, setCategory] = React.useState("all");
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [fees, setFees] = React.useState<FeeTransaction[]>([]);
+  const [books, setBooks] = React.useState<LibraryBook[]>([]);
+  const [notices, setNotices] = React.useState<NoticeItem[]>([]);
+
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([
+      getLiveStudentsAction(),
+      getLiveFeeTransactionsAction(),
+      getLiveBooksAction(),
+      getLiveNoticesAction(),
+    ]).then(([st, fe, bk, nt]) => {
+      if (!active) return;
+      setStudents(st);
+      setFees(fe);
+      setBooks(bk);
+      setNotices(nt);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const q = query.trim().toLowerCase();
 
   const studentMatches = React.useMemo(
     () =>
-      MOCK_STUDENTS.filter(
+      students.filter(
         (s) =>
           !q ||
           s.name.toLowerCase().includes(q) ||
           s.admissionId.toLowerCase().includes(q) ||
           s.className.toLowerCase().includes(q),
       ),
-    [q],
+    [students, q],
   );
 
   const feeMatches = React.useMemo(
     () =>
-      MOCK_FEE_TRANSACTIONS.filter(
+      fees.filter(
         (f) =>
           !q ||
           f.studentName.toLowerCase().includes(q) ||
           f.receiptNo.toLowerCase().includes(q) ||
           f.feeHead.toLowerCase().includes(q),
       ),
-    [q],
+    [fees, q],
   );
 
   const resourceMatches = React.useMemo(() => {
-    const books = MOCK_BOOKS.filter(
+    const bList = books.filter(
       (b) => !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q),
     ).map((b) => ({
       id: b.id,
@@ -73,7 +97,7 @@ function SearchResultsContent() {
       href: "/admin/library/books",
     }));
 
-    const notices = MOCK_NOTICES.filter(
+    const nList = notices.filter(
       (n) => !q || n.title.toLowerCase().includes(q) || n.description.toLowerCase().includes(q),
     ).map((n) => ({
       id: n.id,
@@ -84,8 +108,8 @@ function SearchResultsContent() {
       href: "/admin/communication/notices",
     }));
 
-    return [...books, ...notices];
-  }, [q]);
+    return [...bList, ...nList];
+  }, [books, notices, q]);
 
   const showStudents = category === "all" || category === "students";
   const showFees = category === "all" || category === "fees";

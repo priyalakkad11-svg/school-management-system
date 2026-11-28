@@ -4,15 +4,42 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, StatusBadge, Textarea } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { listEnquiriesAction, updateEnquiryStatusAction } from "@/app/actions/students-staff.actions";
 
 export default function AdmissionApplicationReviewPage() {
   const { showToast } = useToast();
+  const [enquiryId, setEnquiryId] = React.useState<string | null>(null);
   const [decision, setDecision] = React.useState<"Pending Review" | "Approved" | "Test Scheduled" | "Rejected">("Pending Review");
   const [score, setScore] = React.useState("88 / 100 (Math + English)");
   const [panelStatus, setPanelStatus] = React.useState("Recommended by Principal");
   const [remarks, setRemarks] = React.useState(
     "Strong academic background; sibling discount eligible.",
   );
+
+  React.useEffect(() => {
+    let active = true;
+    void listEnquiriesAction().then((res) => {
+      if (active && res.ok && res.data?.[0]) {
+        setEnquiryId(res.data[0].id);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const persistDecision = async (
+    uiState: "Approved" | "Test Scheduled" | "Rejected",
+    dbStatus: "Approved" | "Assessment Scheduled" | "Rejected",
+    toastMsg: string,
+    tone?: "warning",
+  ) => {
+    setDecision(uiState);
+    if (enquiryId) {
+      await updateEnquiryStatusAction({ enquiryId, status: dbStatus });
+    }
+    showToast(toastMsg, tone);
+  };
 
   return (
     <AppShell
@@ -53,28 +80,33 @@ export default function AdmissionApplicationReviewPage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Button
               variant="primary"
-              onClick={() => {
-                setDecision("Approved");
-                showToast("Offer letter issued for Naina Kulkarni (Class 6–B).");
-              }}
+              onClick={() =>
+                void persistDecision(
+                  "Approved",
+                  "Approved",
+                  "Offer letter issued and admission status updated in Supabase.",
+                )
+              }
             >
               Approve &amp; Issue Offer Letter
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                setDecision("Test Scheduled");
-                showToast("Entrance assessment slot scheduled for Friday 10:00 AM.");
-              }}
+              onClick={() =>
+                void persistDecision(
+                  "Test Scheduled",
+                  "Assessment Scheduled",
+                  "Entrance assessment slot scheduled.",
+                )
+              }
             >
               Schedule Entrance Test
             </Button>
             <Button
               variant="danger"
-              onClick={() => {
-                setDecision("Rejected");
-                showToast("Application marked rejected.", "warning");
-              }}
+              onClick={() =>
+                void persistDecision("Rejected", "Rejected", "Application marked rejected.", "warning")
+              }
             >
               Reject Application
             </Button>

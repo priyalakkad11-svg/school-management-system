@@ -1,12 +1,53 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { DetailPage } from "@/components/templates/DetailPage";
 import { Button, Card } from "@/components/ui/primitives";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import type { Student } from "@/types/domain";
+
+const EMPTY_STUDENT: Student = {
+  id: "loading",
+  admissionId: "ADM-2026-0142",
+  rollNo: "01",
+  name: "Loading Student...",
+  className: "Class 10",
+  section: "A",
+  dob: "—",
+  gender: "Male",
+  bloodGroup: "O+",
+  house: "Emerald",
+  parentName: "Guardian",
+  parentPhone: "—",
+  parentEmail: "",
+  address: "—",
+  transportRoute: "Campus Bus",
+  attendancePct: 95,
+  termAvgPct: 90,
+  feeStatus: "Paid",
+  feeDueAmount: 0,
+  status: "Active",
+};
 
 export default function AdminStudentProfilePage() {
-  const s = MOCK_STUDENTS[0];
+  const [s, setS] = React.useState<Student>(EMPTY_STUDENT);
+
+  React.useEffect(() => {
+    let active = true;
+    const admParam =
+      typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null;
+    void getLiveStudentsAction().then((rows) => {
+      if (!active || rows.length === 0) return;
+      const match = admParam
+        ? rows.find((r) => r.admissionId === admParam || r.id === admParam) ?? rows[0]
+        : rows[0];
+      setS(match);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <DetailPage

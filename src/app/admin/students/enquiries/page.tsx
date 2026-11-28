@@ -1,17 +1,29 @@
 "use client";
 
+import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
 import { StatCard } from "@/components/ui/primitives";
-import { MOCK_ENQUIRIES } from "@/mocks/school.data";
+import { getLiveEnquiriesAction } from "@/app/actions/live-data.actions";
 import type { AdmissionEnquiry } from "@/types/domain";
 
 export default function AdmissionEnquiriesPage() {
+  const [rows, setRows] = React.useState<AdmissionEnquiry[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveEnquiriesAction().then((data) => {
+      if (active) setRows(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <DataTablePage<AdmissionEnquiry>
       role="admin"
       title="Admission Enquiries CRM"
       subtitle="Recent Admission Leads for Academic Year 2026–27"
-      rows={MOCK_ENQUIRIES}
+      rows={rows}
       searchPlaceholder="Search enquiry ID, child, parent phone..."
       primaryAction={{ label: "Review Applications", href: "/admin/students/applications" }}
       topSummary={

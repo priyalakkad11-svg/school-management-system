@@ -4,14 +4,34 @@ import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
 import { Button } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_COMPLAINTS } from "@/mocks/school.data";
+import { getLiveComplaintsAction } from "@/app/actions/live-data.actions";
+import { updateComplaintAction } from "@/app/actions/academics-finance.actions";
 import type { ComplaintTicket } from "@/types/domain";
 
 export default function ComplaintsFeedbackPage() {
   const { showToast } = useToast();
-  const [tickets, setTickets] = React.useState<ComplaintTicket[]>(MOCK_COMPLAINTS);
+  const [tickets, setTickets] = React.useState<ComplaintTicket[]>([]);
 
-  const resolveTicket = (id: string) => {
+  React.useEffect(() => {
+    let active = true;
+    void getLiveComplaintsAction().then((data) => {
+      if (active) setTickets(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const resolveTicket = async (id: string) => {
+    const res = await updateComplaintAction({
+      complaintId: id,
+      status: "Resolved",
+      resolutionNote: "Resolved by school administration.",
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Failed resolving complaint.", "warning");
+      return;
+    }
     setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status: "Resolved" } : t)));
     showToast("Complaint ticket marked Resolved.");
   };

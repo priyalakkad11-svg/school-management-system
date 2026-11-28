@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, StatusBadge } from "@/components/ui/primitives";
+import { CommunicationService } from "@/services/school.service";
 
 export const metadata: Metadata = {
   title: "School Events & Academic Calendar 2026–27",
@@ -9,26 +10,21 @@ export const metadata: Metadata = {
     "Upcoming parent-teacher meetings, Annual Science Expo, mid-term examinations, and inter-house athletics dates at Greenwood International Academy.",
 };
 
-const EVENTS = [
-  { date: "08 Dec 2026", title: "Mid-Term Examinations Begin (Grades 6–12)", tag: "Exam", tone: "info" as const },
-  { date: "12 Dec 2026", title: "Annual STEM & Robotics Science Expo", tag: "Event", tone: "success" as const },
-  { date: "19 Dec 2026", title: "Term 2 Parent-Teacher Meeting (PTM)", tag: "PTM", tone: "primary" as const },
-  { date: "10 Jan 2027", title: "Term 3 Tuition & Transport Fee Due Date", tag: "Finance", tone: "warning" as const },
-];
+export default async function PublicEventsPage() {
+  const events = await CommunicationService.listEvents(true);
+  const firstEvent = events[0];
 
-export default function PublicEventsPage() {
   return (
     <PublicLayout>
       <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "Event",
-          name: "Annual STEM & Robotics Science Expo",
-          startDate: "2026-12-12T10:00:00+05:30",
+          name: firstEvent?.title ?? "Annual Campus Academic Showcase",
+          startDate: firstEvent?.eventDate ?? "2026-12-12",
           location: {
             "@type": "Place",
-            name: "Greenwood International Academy Main Auditorium",
-            address: "Baner Annexe, Pune 411045",
+            name: firstEvent?.location || "Campus Main Auditorium",
           },
         }}
       />
@@ -44,13 +40,14 @@ export default function PublicEventsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {EVENTS.map((ev) => (
-            <Card key={ev.title} className="p-6 flex flex-col gap-2.5">
+          {events.map((ev) => (
+            <Card key={ev.id} className="p-6 flex flex-col gap-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-brand">{ev.date}</span>
-                <StatusBadge tone={ev.tone}>{ev.tag}</StatusBadge>
+                <span className="text-xs font-bold text-brand">{ev.eventDate}</span>
+                <StatusBadge tone="info">{ev.category}</StatusBadge>
               </div>
               <h2 className="text-base font-bold text-ink">{ev.title}</h2>
+              {ev.description ? <p className="text-xs text-ink-secondary">{ev.description}</p> : null}
             </Card>
           ))}
         </div>

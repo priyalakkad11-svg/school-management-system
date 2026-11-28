@@ -5,26 +5,73 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_FEE_TRANSACTIONS } from "@/mocks/school.data";
+import { getLiveFeeTransactionsAction, getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import { collectStudentFeeAction } from "@/app/actions/academics-finance.actions";
 import { formatInr } from "@/lib/utils";
+import type { FeeTransaction, Student } from "@/types/domain";
 
 export default function FeeCollectionPage() {
   const { showToast } = useToast();
-  const [studentId, setStudentId] = React.useState("ADM-2026-0144 (Devansh Patel • ₹19,000 Due)");
-  const [mode, setMode] = React.useState("UPI (GPay / Razorpay)");
-  const [amount, setAmount] = React.useState("19000");
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [txns, setTxns] = React.useState<FeeTransaction[]>([]);
+  const [studentId, setStudentId] = React.useState("");
+  const [mode, setMode] = React.useState<"Cash" | "UPI" | "Bank Transfer" | "Cheque" | "Card">("UPI");
+  const [amount, setAmount] = React.useState("18500");
   const [reference, setReference] = React.useState("UTR-4099812711");
+  const [busy, setBusy] = React.useState(false);
 
-  const handleCollect = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([getLiveStudentsAction(), getLiveFeeTransactionsAction()]).then(([stu, fees]) => {
+      if (!active) return;
+      setStudents(stu);
+      setTxns(fees);
+      const defaulter = stu.find((s) => s.feeDueAmount > 0) ?? stu[0];
+      if (defaulter) {
+        setStudentId(defaulter.id);
+        setAmount(String(defaulter.feeDueAmount > 0 ? defaulter.feeDueAmount : 18500));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleCollect = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast(`Collected ${formatInr(Number(amount) || 0)} via ${mode}. Receipt issued.`);
+    if (!studentId) {
+      showToast("Select a student first.", "warning");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await collectStudentFeeAction({
+        studentId,
+        amountInr: Number(amount) || 0,
+        paymentMode: mode,
+        referenceNo: reference,
+      });
+      if (!res.ok || !res.data) {
+        showToast(res.error ?? "Fee collection failed.", "warning");
+        return;
+      }
+      showToast(`Collected ${formatInr(Number(amount) || 0)} — Receipt ${res.data.receiptNumber} issued.`);
+      const [freshStu, freshFees] = await Promise.all([
+        getLiveStudentsAction(),
+        getLiveFeeTransactionsAction(),
+      ]);
+      setStudents(freshStu);
+      setTxns(freshFees);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <AppShell
       role="admin"
       title="Fee Counter & Online Collection"
-      subtitle="Accept counter cash/cheque/UPI payments and generate GST-compliant school receipts"
+      subtitle="Accept counter cash/cheque/UPI payments and generate gapless GST-compliant school receipts"
       actions={
         <Link href="/admin/fees/receipt">
           <Button variant="outline">Print Sample Receipt</Button>
@@ -36,29 +83,35 @@ export default function FeeCollectionPage() {
           <form onSubmit={handleCollect} className="flex flex-col gap-4">
             <h2 className="text-lg font-bold text-ink">Record Fee Payment</h2>
             <Select
-              label="Select Student Invoice"
+              label="Select Student"
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              options={[
-                { label: "ADM-2026-0144 (Devansh Patel • ₹19,000 Due)", value: "ADM-2026-0144 (Devansh Patel • ₹19,000 Due)" },
-                { label: "ADM-2026-0146 (Kabir Joshi • ₹22,700 Due)", value: "ADM-2026-0146 (Kabir Joshi • ₹22,700 Due)" },
-              ]}
+              onChange={(e) => {
+                const id = e.target.value;
+                setStudentId(id);
+                const match = students.find((s) => s.id === id);
+                if (match && match.feeDueAmount > 0) setAmount(String(match.feeDueAmount));
+              }}
+              options={students.map((s) => ({
+                label: `${s.admissionId} (${s.name} • ₹${s.feeDueAmount} Due)`,
+                value: s.id,
+              }))}
             />
             <Select
               label="Payment Mode"
               value={mode}
-              onChange={(e) => setMode(e.target.value)}
+              onChange={(e) => setMode(e.target.value as typeof mode)}
               options={[
-                { label: "UPI (GPay / Razorpay)", value: "UPI (GPay / Razorpay)" },
-                { label: "NetBanking / NEFT", value: "NetBanking / NEFT" },
-                { label: "Card / POS Counter", value: "Card / POS Counter" },
-                { label: "Cash Counter", value: "Cash Counter" },
+                { label: "UPI (GPay / Razorpay)", value: "UPI" },
+                { label: "Bank Transfer (NEFT)", value: "Bank Transfer" },
+                { label: "Card / POS Counter", value: "Card" },
+                { label: "Cash Counter", value: "Cash" },
+                { label: "Cheque", value: "Cheque" },
               ]}
             />
             <Input label="Net Payable (INR)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
             <Input label="Transaction / Cheque Ref" value={reference} onChange={(e) => setReference(e.target.value)} />
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Confirm &amp; Generate Receipt
+            <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy}>
+              {busy ? "Issuing Receipt..." : "Confirm & Generate Receipt"}
             </Button>
           </form>
         </Card>
@@ -66,7 +119,7 @@ export default function FeeCollectionPage() {
         <Card className="lg:col-span-7 p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-ink">Recent Fee Counter Receipts</h2>
-            <span className="text-xs text-ink-muted">{MOCK_FEE_TRANSACTIONS.length} entries</span>
+            <span className="text-xs text-ink-muted">{txns.length} entries</span>
           </div>
           <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Recent fee receipts">
             <table className="w-full text-left border-collapse">
@@ -80,7 +133,7 @@ export default function FeeCollectionPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {MOCK_FEE_TRANSACTIONS.map((tx) => (
+                {txns.map((tx) => (
                   <tr key={tx.id}>
                     <td className="py-3 px-3 text-sm font-bold text-brand">
                       <Link href="/admin/fees/receipt" className="hover:underline">

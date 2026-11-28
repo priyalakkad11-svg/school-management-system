@@ -4,7 +4,8 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, StatusBadge } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/overlays";
-import { MOCK_BOOKS } from "@/mocks/school.data";
+import { getLiveBooksAction } from "@/app/actions/live-data.actions";
+import type { LibraryBook } from "@/types/domain";
 
 const ISSUED_BOOKS = [
   { id: "b1", title: "Concepts of Physics Vol. 2", author: "H.C. Verma", accNo: "LIB-4421", issueDate: "18 Nov 2026", dueDate: "02 Dec 2026", status: "Issued (7d left)", tone: "info" as const },
@@ -15,8 +16,19 @@ const ISSUED_BOOKS = [
 export default function StudentLibraryPage() {
   const [catalogOpen, setCatalogOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [books, setBooks] = React.useState<LibraryBook[]>([]);
 
-  const filteredCatalog = MOCK_BOOKS.filter(
+  React.useEffect(() => {
+    let active = true;
+    void getLiveBooksAction().then((data) => {
+      if (active) setBooks(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredCatalog = books.filter(
     (b) =>
       !search.trim() ||
       b.title.toLowerCase().includes(search.trim().toLowerCase()) ||

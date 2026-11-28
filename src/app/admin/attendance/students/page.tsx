@@ -4,19 +4,39 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_STUDENTS } from "@/mocks/school.data";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import { markStudentAttendanceBatchAction } from "@/app/actions/students-staff.actions";
+import { listClassesAction } from "@/app/actions/setup.actions";
+import type { Student } from "@/types/domain";
 
 export default function AdminStudentAttendancePage() {
   const { showToast } = useToast();
-  const [cls, setCls] = React.useState("Class 10–A");
-  const [date, setDate] = React.useState("2026-11-25");
-  const [marks, setMarks] = React.useState<Record<string, "Present" | "Absent" | "Late">>({
-    "stu-1": "Present",
-    "stu-2": "Present",
-    "stu-3": "Absent",
-    "stu-4": "Late",
-    "stu-5": "Present",
-  });
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [classId, setClassId] = React.useState("");
+  const [classOptions, setClassOptions] = React.useState<Array<{ label: string; value: string }>>([]);
+  const [section, setSection] = React.useState("A");
+  const [date, setDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+  const [marks, setMarks] = React.useState<Record<string, "Present" | "Absent" | "Late">>({});
+
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([getLiveStudentsAction(), listClassesAction()]).then(([stuRows, clsRes]) => {
+      if (!active) return;
+      setStudents(stuRows);
+      const init: Record<string, "Present" | "Absent" | "Late"> = {};
+      stuRows.forEach((s) => {
+        init[s.id] = "Present";
+      });
+      setMarks(init);
+      if (clsRes.ok && clsRes.data && clsRes.data.rows.length > 0) {
+        setClassOptions(clsRes.data.rows.map((c) => ({ label: c.name, value: c.id })));
+        setClassId(clsRes.data.rows[0].id);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const cycle = (id: string) => {
     const order: ("Present" | "Absent" | "Late")[] = ["Present", "Absent", "Late"];
@@ -26,41 +46,70 @@ export default function AdminStudentAttendancePage() {
     });
   };
 
+  const handleSave = async () => {
+    if (!classId || students.length === 0) {
+      showToast("No active students or class selected.", "warning");
+      return;
+    }
+    const res = await markStudentAttendanceBatchAction({
+      classId,
+      sectionName: section,
+      attendanceDate: date,
+      entries: students.map((s) => ({
+        studentId: s.id,
+        status: marks[s.id] ?? "Present",
+      })),
+    });
+    if (!res.ok || !res.data) {
+      showToast(res.error ?? "Failed saving attendance.", "warning");
+      return;
+    }
+    showToast(
+      `Saved ${res.data.marked} attendance entries (${res.data.absentAlertsQueued} absent alerts queued).`,
+    );
+  };
+
   return (
     <AppShell
       role="admin"
       title="Student Attendance (Class-wise)"
-      subtitle="Monitor and override section attendance registers across Grades Nursery–12"
+      subtitle="Monitor and record section attendance registers across Grades Nursery–12"
       actions={
         <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
             onClick={() => {
               const next: Record<string, "Present" | "Absent" | "Late"> = {};
-              MOCK_STUDENTS.forEach((s) => {
+              students.forEach((s) => {
                 next[s.id] = "Present";
               });
               setMarks(next);
-              showToast("All students marked Present.");
+              showToast("Marked all loaded students Present.");
             }}
           >
             Mark All Present
           </Button>
-          <Button variant="primary" onClick={() => showToast(`Saved ${cls} register for ${date}.`)}>
+          <Button variant="primary" onClick={() => void handleSave()}>
             Lock &amp; Notify Parents
           </Button>
         </div>
       }
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
         <Select
-          label="Class & Section"
-          value={cls}
-          onChange={(e) => setCls(e.target.value)}
+          label="Class"
+          value={classId}
+          onChange={(e) => setClassId(e.target.value)}
+          options={classOptions.length > 0 ? classOptions : [{ label: "Default Class", value: "" }]}
+        />
+        <Select
+          label="Section"
+          value={section}
+          onChange={(e) => setSection(e.target.value)}
           options={[
-            { label: "Class 10–A", value: "Class 10–A" },
-            { label: "Class 10–B", value: "Class 10–B" },
-            { label: "Class 9–A", value: "Class 9–A" },
+            { label: "Section A", value: "A" },
+            { label: "Section B", value: "B" },
+            { label: "Section C", value: "C" },
           ]}
         />
         <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -79,7 +128,7 @@ export default function AdminStudentAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {MOCK_STUDENTS.slice(0, 5).map((s) => {
+              {students.slice(0, 20).map((s) => {
                 const st = marks[s.id] ?? "Present";
                 return (
                   <tr key={s.id} className="hover:bg-subtle/60">

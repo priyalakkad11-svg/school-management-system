@@ -4,6 +4,7 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, Select, Textarea } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { submitHelpdeskTicketAction } from "@/app/actions/academics-finance.actions";
 
 const HELP_GUIDES = [
   {
@@ -40,13 +41,23 @@ export default function HelpSupportPage() {
   const [subject, setSubject] = React.useState("Razorpay webhook delay on UPI payments");
   const [description, setDescription] = React.useState("Receipt generation takes ~15s after payment...");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !description.trim()) {
       showToast("Please fill in subject and description.", "warning");
       return;
     }
-    showToast(`Support ticket raised (#SUP-${Math.floor(1000 + Math.random() * 9000)}).`);
+    const res = await submitHelpdeskTicketAction({
+      subject: subject.trim(),
+      category: moduleName,
+      priority: priority as "low" | "medium" | "high" | "urgent",
+      description: description.trim(),
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to create support ticket.", "warning");
+      return;
+    }
+    showToast("Support ticket logged to EduCore Support Queue.");
   };
 
   return (

@@ -1,17 +1,75 @@
 "use client";
 
+import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { listP1OperationsDataAction, settleLibraryFineAction } from "@/app/actions/academics-finance.actions";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
 
-const MEMBERS = [
-  { id: "lm-1", card: "LIB-MEM-0142", name: "Aarav Sharma (10–A)", issued: "2 / 3", overdueFine: "₹10", status: "Active" },
-  { id: "lm-2", card: "LIB-MEM-0143", name: "Ananya Verma (10–A)", issued: "1 / 3", overdueFine: "₹0", status: "Active" },
-  { id: "lm-3", card: "LIB-FAC-0042", name: "Mrs. Kavita Nair (Faculty)", issued: "4 / 8", overdueFine: "₹0", status: "Faculty Priority" },
-];
+interface LibraryMemberRow {
+  id: string;
+  issueId?: string;
+  card: string;
+  name: string;
+  issued: string;
+  overdueFineInr: number;
+  status: string;
+}
 
 export default function LibraryMembersFinesPage() {
   const { showToast } = useToast();
+  const [members, setMembers] = React.useState<LibraryMemberRow[]>([]);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const loadData = React.useCallback(async () => {
+    const [ops, students] = await Promise.all([listP1OperationsDataAction(), getLiveStudentsAction()]);
+    const issues = ops.ok && ops.data ? ops.data.issues : [];
+    const mapped: LibraryMemberRow[] = students.slice(0, 20).map((s) => {
+      const stuIssues = issues.filter(
+        (i) => (i.member_id === s.id || i.member_name.includes(s.name)) && i.status !== "Returned",
+      );
+      const totalFine = stuIssues.reduce((sum, i) => sum + Number(i.fine_inr ?? 0), 0);
+      return {
+        id: s.id,
+        issueId: stuIssues[0]?.id,
+        card: `LIB-${s.admissionId}`,
+        name: `${s.name} (${s.className}–${s.section})`,
+        issued: `${stuIssues.length} / 3`,
+        overdueFineInr: totalFine,
+        status: s.status,
+      };
+    });
+    setMembers(mapped);
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([listP1OperationsDataAction(), getLiveStudentsAction()]).then(([ops, students]) => {
+      if (!active) return;
+      const issues = ops.ok && ops.data ? ops.data.issues : [];
+      setMembers(
+        students.slice(0, 20).map((s) => {
+          const stuIssues = issues.filter(
+            (i) => (i.member_id === s.id || i.member_name.includes(s.name)) && i.status !== "Returned",
+          );
+          const totalFine = stuIssues.reduce((sum, i) => sum + Number(i.fine_inr ?? 0), 0);
+          return {
+            id: s.id,
+            issueId: stuIssues[0]?.id,
+            card: `LIB-${s.admissionId}`,
+            name: `${s.name} (${s.className}–${s.section})`,
+            issued: `${stuIssues.length} / 3`,
+            overdueFineInr: totalFine,
+            status: s.status,
+          };
+        }),
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AppShell
@@ -33,14 +91,14 @@ export default function LibraryMembersFinesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {MEMBERS.map((m) => (
+              {members.map((m) => (
                 <tr key={m.id}>
                   <td className="py-3.5 px-4 text-sm font-bold text-ink">{m.card}</td>
                   <td className="py-3.5 px-4 text-sm text-ink">{m.name}</td>
                   <td className="py-3.5 px-4 text-sm text-ink-secondary">{m.issued}</td>
-                  <td className="py-3.5 px-4 text-sm font-semibold text-ink">{m.overdueFine}</td>
+                  <td className="py-3.5 px-4 text-sm font-semibold text-ink">₹{m.overdueFineInr}</td>
                   <td className="py-3.5 px-4">
-                    <StatusBadge tone={m.overdueFine === "₹0" ? "success" : "warning"}>
+                    <StatusBadge tone={m.overdueFineInr === 0 ? "success" : "warning"}>
                       {m.status}
                     </StatusBadge>
                   </td>
@@ -48,9 +106,21 @@ export default function LibraryMembersFinesPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => showToast(`Settled library account for ${m.name}.`)}
+                      disabled={!m.issueId || busyId === m.id}
+                      onClick={async () => {
+                        if (!m.issueId) return;
+                        setBusyId(m.id);
+                        const res = await settleLibraryFineAction({ issueId: m.issueId, action: "collect" });
+                        setBusyId(null);
+                        if (!res.ok) {
+                          showToast(res.error ?? "Failed to settle library account.", "warning");
+                          return;
+                        }
+                        showToast(`Settled library account for ${m.name}.`, "success");
+                        await loadData();
+                      }}
                     >
-                      Collect / Waive
+                      {m.issueId ? "Collect / Waive" : "No Dues"}
                     </Button>
                   </td>
                 </tr>

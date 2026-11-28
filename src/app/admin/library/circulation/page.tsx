@@ -2,27 +2,128 @@
 
 import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { Button, Card, Input, StatusBadge } from "@/components/ui/primitives";
+import { Button, Card, Select, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import {
+  issueOrReturnLibraryBookAction,
+  listP1OperationsDataAction,
+} from "@/app/actions/academics-finance.actions";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
 
-const ACTIVE_ISSUES = [
-  { id: "ci-1", accNo: "LIB-4421", book: "Concepts of Physics Vol. 2", member: "Aarav Sharma (10–A)", due: "02 Dec 2026", status: "Issued" },
-  { id: "ci-2", accNo: "LIB-1189", book: "Mathematics Class 10 Reference", member: "Aarav Sharma (10–A)", due: "24 Nov 2026", status: "1d Overdue" },
-];
+interface LoanRow {
+  id: string;
+  bookId: string;
+  accNo: string;
+  book: string;
+  member: string;
+  due: string;
+  status: string;
+}
 
 export default function LibraryCirculationPage() {
   const { showToast } = useToast();
-  const [issues, setIssues] = React.useState(ACTIVE_ISSUES);
-  const [memberId, setMemberId] = React.useState("ADM-2026-0143 (Ananya Verma)");
-  const [accNo, setAccNo] = React.useState("LIB-0923 (To Kill a Mockingbird)");
+  const [issues, setIssues] = React.useState<LoanRow[]>([]);
+  const [bookOptions, setBookOptions] = React.useState<{ label: string; value: string }[]>([]);
+  const [memberOptions, setMemberOptions] = React.useState<{ label: string; value: string }[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = React.useState("");
+  const [selectedBookId, setSelectedBookId] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
 
-  const handleIssue = (e: React.FormEvent) => {
+  const reload = React.useCallback(async () => {
+    const [ops, students] = await Promise.all([listP1OperationsDataAction(), getLiveStudentsAction()]);
+    if (ops.ok && ops.data) {
+      const books = ops.data.books.map((b) => ({
+        label: `${b.accession_no} — ${b.title} (${b.available_copies} avail)`,
+        value: b.id,
+      }));
+      setBookOptions(books);
+      setSelectedBookId((prev) => prev || (books[0]?.value ?? ""));
+      setIssues(
+        ops.data.issues
+          .filter((i) => i.status !== "Returned")
+          .map((i) => {
+            const b = Array.isArray(i.library_books) ? i.library_books[0] : i.library_books;
+            return {
+              id: i.id,
+              bookId: i.book_id,
+              accNo: b?.accession_no ?? "LIB",
+              book: b?.title ?? "Book",
+              member: i.member_name,
+              due: i.due_on,
+              status: new Date(i.due_on).getTime() < Date.now() ? "Overdue" : i.status,
+            };
+          }),
+      );
+    }
+    const members = students.map((s) => ({
+      label: `${s.admissionId} — ${s.name} (${s.className})`,
+      value: s.id,
+    }));
+    setMemberOptions(members);
+    setSelectedMemberId((prev) => prev || (members[0]?.value ?? ""));
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all([listP1OperationsDataAction(), getLiveStudentsAction()]).then(([ops, students]) => {
+      if (!active) return;
+      if (ops.ok && ops.data) {
+        const books = ops.data.books.map((b) => ({
+          label: `${b.accession_no} — ${b.title} (${b.available_copies} avail)`,
+          value: b.id,
+        }));
+        setBookOptions(books);
+        if (books[0]) setSelectedBookId(books[0].value);
+        setIssues(
+          ops.data.issues
+            .filter((i) => i.status !== "Returned")
+            .map((i) => {
+              const b = Array.isArray(i.library_books) ? i.library_books[0] : i.library_books;
+              return {
+                id: i.id,
+                bookId: i.book_id,
+                accNo: b?.accession_no ?? "LIB",
+                book: b?.title ?? "Book",
+                member: i.member_name,
+                due: i.due_on,
+                status: new Date(i.due_on).getTime() < Date.now() ? "Overdue" : i.status,
+              };
+            }),
+        );
+      }
+      const members = students.map((s) => ({
+        label: `${s.admissionId} — ${s.name} (${s.className})`,
+        value: s.id,
+      }));
+      setMemberOptions(members);
+      if (members[0]) setSelectedMemberId(members[0].value);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleIssue = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIssues((prev) => [
-      { id: `ci-${Date.now()}`, accNo: accNo.split(" ")[0], book: accNo, member: memberId, due: "09 Dec 2026", status: "Issued" },
-      ...prev,
-    ]);
-    showToast(`Issued ${accNo} to ${memberId}.`);
+    if (!selectedBookId) {
+      showToast("Select a book to issue.", "warning");
+      return;
+    }
+    setBusy(true);
+    const memberLabel = memberOptions.find((m) => m.value === selectedMemberId)?.label ?? "Student Member";
+    const res = await issueOrReturnLibraryBookAction({
+      mode: "issue",
+      bookId: selectedBookId,
+      memberId: selectedMemberId || undefined,
+      memberName: memberLabel,
+    });
+    setBusy(false);
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to issue book.", "warning");
+      return;
+    }
+    showToast(`Issued book to ${memberLabel}.`, "success");
+    await reload();
   };
 
   return (
@@ -35,10 +136,20 @@ export default function LibraryCirculationPage() {
         <Card className="lg:col-span-5 p-6">
           <form onSubmit={handleIssue} className="flex flex-col gap-4">
             <h2 className="text-lg font-bold text-ink">Issue New Book</h2>
-            <Input label="Student / Teacher ID" value={memberId} onChange={(e) => setMemberId(e.target.value)} />
-            <Input label="Book Accession / Barcode" value={accNo} onChange={(e) => setAccNo(e.target.value)} />
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Confirm Issue (14 Days)
+            <Select
+              label="Student Member"
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              options={memberOptions.length ? memberOptions : [{ label: "Loading students...", value: "" }]}
+            />
+            <Select
+              label="Library Book"
+              value={selectedBookId}
+              onChange={(e) => setSelectedBookId(e.target.value)}
+              options={bookOptions.length ? bookOptions : [{ label: "Loading catalog...", value: "" }]}
+            />
+            <Button type="submit" variant="primary" size="lg" disabled={busy || !selectedBookId} className="w-full">
+              {busy ? "Issuing..." : "Confirm Issue (14 Days)"}
             </Button>
           </form>
         </Card>
@@ -57,30 +168,50 @@ export default function LibraryCirculationPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {issues.map((row) => (
-                  <tr key={row.id}>
-                    <td className="py-3 px-3 text-sm font-bold text-ink">{row.accNo}</td>
-                    <td className="py-3 px-3 text-sm text-ink">{row.book}</td>
-                    <td className="py-3 px-3 text-sm text-ink-secondary">{row.member}</td>
-                    <td className="py-3 px-3">
-                      <StatusBadge tone={row.status.includes("Overdue") ? "danger" : "info"}>
-                        {row.due}
-                      </StatusBadge>
-                    </td>
-                    <td className="py-3 px-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setIssues((prev) => prev.filter((i) => i.id !== row.id));
-                          showToast(`Returned ${row.accNo}.`);
-                        }}
-                      >
-                        Mark Returned
-                      </Button>
+                {issues.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-sm text-ink-muted">
+                      No active book loans currently issued.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  issues.map((row) => (
+                    <tr key={row.id}>
+                      <td className="py-3 px-3 text-sm font-bold text-ink">{row.accNo}</td>
+                      <td className="py-3 px-3 text-sm text-ink">{row.book}</td>
+                      <td className="py-3 px-3 text-sm text-ink-secondary">{row.member}</td>
+                      <td className="py-3 px-3">
+                        <StatusBadge tone={row.status.includes("Overdue") ? "danger" : "info"}>
+                          {row.due}
+                        </StatusBadge>
+                      </td>
+                      <td className="py-3 px-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={async () => {
+                            setBusy(true);
+                            const res = await issueOrReturnLibraryBookAction({
+                              mode: "return",
+                              bookId: row.bookId,
+                              issueId: row.id,
+                            });
+                            setBusy(false);
+                            if (!res.ok) {
+                              showToast(res.error ?? "Unable to mark returned.", "warning");
+                              return;
+                            }
+                            showToast(`Returned ${row.accNo}.`, "success");
+                            await reload();
+                          }}
+                        >
+                          Mark Returned
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

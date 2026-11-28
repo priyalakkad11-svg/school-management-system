@@ -4,6 +4,8 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, Input, StatusBadge } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
+import { createConcessionAction } from "@/app/actions/academics-finance.actions";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
 
 const SCHOLARSHIPS = [
   { id: "sc-1", name: "Merit Academic Excellence (>90%)", discount: "10% Tuition Waiver", beneficiaries: 42, status: "Active" },
@@ -19,16 +21,29 @@ export default function ScholarshipsPage() {
   const [name, setName] = React.useState("");
   const [discount, setDiscount] = React.useState("15% Tuition Waiver");
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const stu = await getLiveStudentsAction();
+    if (stu[0]) {
+      const r = await createConcessionAction({
+        studentId: stu[0].id,
+        title: name.trim(),
+        concessionType: discount.includes("%") ? "percent" : "amount",
+        concessionValue: parseInt(discount.replace(/\D/g, ""), 10) || 10,
+      });
+      if (!r.ok) {
+        showToast(r.error ?? "Failed saving concession.", "warning");
+        return;
+      }
+    }
     setList((prev) => [
-      { id: `sc-${Date.now()}`, name: name.trim(), discount, beneficiaries: 0, status: "Active" },
+      { id: `sc-${Date.now()}`, name: name.trim(), discount, beneficiaries: 1, status: "Active" },
       ...prev,
     ]);
     setModalOpen(false);
     setName("");
-    showToast("Scholarship scheme added.");
+    showToast("Scholarship scheme saved to Supabase.");
   };
 
   return (

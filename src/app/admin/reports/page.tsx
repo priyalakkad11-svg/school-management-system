@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { exportSchoolComplianceArchiveAction } from "@/app/actions/academics-finance.actions";
 
 const REPORT_CATEGORIES = [
   {
@@ -38,6 +39,22 @@ const REPORT_CATEGORIES = [
 export default function ReportsCenterPage() {
   const { showToast } = useToast();
 
+  const handleDownload = async (title: string) => {
+    const res = await exportSchoolComplianceArchiveAction();
+    if (!res.ok || !res.data) {
+      showToast(res.error ?? "Unable to export report.", "warning");
+      return;
+    }
+    const blob = new Blob([res.data.json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported "${title}".`, "success");
+  };
+
   return (
     <AppShell
       role="admin"
@@ -67,9 +84,9 @@ export default function ReportsCenterPage() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => showToast(`Exported "${rep.title}".`)}
+                      onClick={() => void handleDownload(rep.title)}
                     >
-                      Download CSV
+                      Download Export
                     </Button>
                   </div>
                 </li>

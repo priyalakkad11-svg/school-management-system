@@ -4,38 +4,55 @@ import React from "react";
 import { DataTablePage } from "@/components/templates/DataTablePage";
 import { Button, Input, Select } from "@/components/ui/primitives";
 import { Modal, useToast } from "@/components/ui/overlays";
-import { MOCK_STAFF } from "@/mocks/school.data";
+import { getLiveStaffAction } from "@/app/actions/live-data.actions";
+import { upsertStaffMemberAction } from "@/app/actions/students-staff.actions";
 import { formatInr } from "@/lib/utils";
 import type { StaffMember } from "@/types/domain";
 
 export default function AdminNonTeachingStaffPage() {
   const { showToast } = useToast();
-  const [staff, setStaff] = React.useState<StaffMember[]>(MOCK_STAFF);
+  const [staff, setStaff] = React.useState<StaffMember[]>([]);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [role, setRole] = React.useState("Accountant");
   const [dept, setDept] = React.useState("Administration");
 
-  const handleAdd = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    let active = true;
+    void getLiveStaffAction().then((data) => {
+      if (active) setStaff(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    setStaff((prev) => [
-      {
-        id: `stf-${Date.now()}`,
-        empId: `STF-0${prev.length + 35}`,
-        name: name.trim(),
-        role,
-        department: dept,
-        shift: "08:30–16:30",
-        phone: "+91 98230 99001",
-        salary: 32000,
-        status: "Active",
-      },
-      ...prev,
-    ]);
+    const empCode = `STF-${Math.floor(100 + Math.random() * 899)}`;
+    const res = await upsertStaffMemberAction({
+      employeeCode: empCode,
+      fullName: name.trim(),
+      category: "Staff",
+      subRole: role.toLowerCase().includes("librarian")
+        ? "librarian"
+        : role.toLowerCase().includes("account")
+          ? "accountant"
+          : "receptionist",
+      department: dept,
+      designation: role,
+      baseSalaryInr: 32000,
+    });
+    if (!res.ok) {
+      showToast(res.error ?? "Unable to save staff.", "warning");
+      return;
+    }
+    const fresh = await getLiveStaffAction();
+    setStaff(fresh);
     setModalOpen(false);
     setName("");
-    showToast("Non-teaching staff member added.");
+    showToast("Non-teaching staff member saved to Supabase.");
   };
 
   return (

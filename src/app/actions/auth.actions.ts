@@ -482,3 +482,45 @@ export async function updateAccountAction(
     },
   };
 }
+
+export async function uploadAccountAvatarAction(
+  formData: FormData,
+): Promise<ActionResult<{ avatarPath: string; signedUrl: string | null }>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in required." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Select a PNG or JPEG image to upload." };
+  }
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    return { ok: false, error: "Only PNG, JPEG, or WebP images are accepted." };
+  }
+  if (file.size > 3 * 1024 * 1024) {
+    return { ok: false, error: "Image must be under 3 MB." };
+  }
+
+  const admin = createAdminClient();
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("school_id")
+    .eq("id", user.id)
+    .single();
+  if (!prof) return { ok: false, error: "Profile not found." };
+
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${prof.school_id}/${user.id}/avatar-${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error: upErr } = await admin.storage
+    .from("avatars")
+    .upload(path, buffer, { contentType: file.type, upsert: true });
+  if (upErr) return { ok: false, error: getErrorMessage(upErr, "Avatar upload failed.") };
+
+  await admin.from("profiles").update({ avatar_path: path }).eq("id", user.id);
+  const signed = await admin.storage.from("avatars").createSignedUrl(path, 3600);
+  return { ok: true, data: { avatarPath: path, signedUrl: signed.data?.signedUrl ?? null } };
+}

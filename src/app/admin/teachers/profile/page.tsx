@@ -1,13 +1,40 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { DetailPage } from "@/components/templates/DetailPage";
 import { Button, Card } from "@/components/ui/primitives";
-import { MOCK_TEACHERS } from "@/mocks/school.data";
+import { getLiveTeachersAction } from "@/app/actions/live-data.actions";
 import { formatInr } from "@/lib/utils";
+import type { Teacher } from "@/types/domain";
+
+const EMPTY_TEACHER: Teacher = {
+  id: "loading",
+  empId: "TCH-042",
+  name: "Loading Faculty...",
+  department: "General",
+  designation: "Faculty",
+  qualification: "B.Ed.",
+  classesAssigned: "Active Classes",
+  periodsPerWeek: 24,
+  email: "—",
+  phone: "—",
+  salaryGross: 0,
+  joinDate: "—",
+  status: "Active",
+};
 
 export default function AdminTeacherProfilePage() {
-  const teacher = MOCK_TEACHERS[0];
+  const [teacher, setTeacher] = React.useState<Teacher>(EMPTY_TEACHER);
+  React.useEffect(() => {
+    let active = true;
+    void getLiveTeachersAction().then((rows) => {
+      if (active && rows[0]) setTeacher(rows[0]);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <DetailPage

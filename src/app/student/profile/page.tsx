@@ -1,11 +1,24 @@
 "use client";
 
+import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
-import { useToast } from "@/components/ui/overlays";
+import { getLiveStudentsAction } from "@/app/actions/live-data.actions";
+import type { Student } from "@/types/domain";
 
 export default function StudentProfilePage() {
-  const { showToast } = useToast();
+  const [student, setStudent] = React.useState<Student | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveStudentsAction().then((rows) => {
+      if (!active || rows.length === 0) return;
+      setStudent(rows[0]);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AppShell
@@ -15,11 +28,19 @@ export default function StudentProfilePage() {
     >
       <Card className="p-6 flex flex-col gap-2">
         <span className="self-start">
-          <StatusBadge tone="primary">ADM-2026-0142 • Class 10–A • Roll #01</StatusBadge>
+          <StatusBadge tone="primary">
+            {student
+              ? `${student.admissionId} • ${student.className}–${student.section} • Roll #${student.rollNo}`
+              : "Loading student record..."}
+          </StatusBadge>
         </span>
-        <h2 className="text-2xl font-bold text-ink pt-1">Aarav Rajesh Sharma</h2>
+        <h2 className="text-2xl font-bold text-ink pt-1">
+          {student?.name ?? "Loading..."}
+        </h2>
         <p className="text-sm text-ink-secondary">
-          House: Emerald • DOB: 14 May 2011 • Blood Group: O+ • Bus Route #04 (Oakridge Stop)
+          {student
+            ? `House: ${student.house} • DOB: ${student.dob} • Blood Group: ${student.bloodGroup} • Status: ${student.status}`
+            : "Fetching tenant student profile"}
         </p>
       </Card>
 
@@ -27,10 +48,9 @@ export default function StudentProfilePage() {
         <Card className="p-6 flex flex-col gap-3">
           <h3 className="text-base font-bold text-ink">Guardian &amp; Contact Info</h3>
           <ul className="flex flex-col gap-2.5 text-sm text-ink-secondary">
-            <li>Father: Mr. Rajesh Sharma (+91 98250 11223)</li>
-            <li>Mother: Mrs. Sunita Sharma (+91 98250 11224)</li>
-            <li>Address: 42 Rosewood Residency, Sector 14, Pune</li>
-            <li>Email: aarav.sharma@student.greenwood.edu</li>
+            <li>Primary Guardian: {student?.parentName ?? "—"} ({student?.parentPhone ?? "—"})</li>
+            <li>Address: {student?.address ?? "—"}</li>
+            <li>Guardian Email: {student?.parentEmail || "Registered on file"}</li>
           </ul>
         </Card>
 
@@ -38,20 +58,14 @@ export default function StudentProfilePage() {
           <div className="flex flex-col gap-3">
             <h3 className="text-base font-bold text-ink">Academic &amp; ID Documents</h3>
             <ul className="flex flex-col gap-2.5 text-sm text-ink-secondary">
-              <li>Class Teacher: Mrs. Kavita Nair</li>
-              <li>Admission Date: 01 Apr 2020</li>
-              <li>Digital ID Card: Active (Valid Mar 2027)</li>
+              <li>Attendance Standing: {student ? `${student.attendancePct}%` : "—"}</li>
+              <li>Outstanding Fee Balance: {student ? `₹${student.feeDueAmount.toLocaleString("en-IN")}` : "—"}</li>
+              <li>Digital ID Card: Active</li>
             </ul>
           </div>
           <div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                showToast("Preparing Digital ID Card for print/download.");
-                window.print();
-              }}
-            >
-              Download Digital ID Card
+            <Button variant="outline" onClick={() => window.print()}>
+              Print / Save Digital ID Card
             </Button>
           </div>
         </Card>

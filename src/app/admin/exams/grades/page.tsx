@@ -3,6 +3,7 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
+import { saveGradeScaleBandAction } from "@/app/actions/academics-finance.actions";
 
 const GRADE_BANDS = [
   { grade: "A+", range: "91% – 100%", gp: "10.0", remark: "Distinction / Exemplary", tone: "success" as const },
@@ -22,7 +23,20 @@ export default function GradeSystemSettingsPage() {
       title="CBSE 9-Point Grade Scale Configuration"
       subtitle="Define percentage boundaries, GPA weights, and automatic transcript remarks"
       actions={
-        <Button variant="primary" onClick={() => showToast("Grading thresholds saved for AY 2026–27.")}>
+        <Button
+          variant="primary"
+          onClick={async () => {
+            const res = await saveGradeScaleBandAction({
+              grade: "A1",
+              minPercent: 91,
+              maxPercent: 100,
+              gradePoint: 10,
+              remark: "Distinction / Exemplary",
+            });
+            if (res.ok) showToast("Grading thresholds saved for AY 2026–27.");
+            else showToast(res.error ?? "Unable to save grading rules.", "warning");
+          }}
+        >
           Save Grading Rules
         </Button>
       }

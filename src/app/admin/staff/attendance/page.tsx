@@ -4,16 +4,28 @@ import React from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button, Card, StatusBadge } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/overlays";
-import { MOCK_TEACHERS } from "@/mocks/school.data";
+import { getLiveTeachersAction } from "@/app/actions/live-data.actions";
+import { upsertStaffMemberAction } from "@/app/actions/students-staff.actions";
+import type { Teacher } from "@/types/domain";
 
 export default function StaffAttendancePage() {
   const { showToast } = useToast();
-  const [statuses, setStatuses] = React.useState<Record<string, "Present" | "On Leave" | "Late">>({
-    "tch-1": "Present",
-    "tch-2": "Present",
-    "tch-3": "On Leave",
-    "tch-4": "Present",
-  });
+  const [teachers, setTeachers] = React.useState<Teacher[]>([]);
+  const [statuses, setStatuses] = React.useState<Record<string, "Present" | "On Leave" | "Late">>({});
+
+  React.useEffect(() => {
+    let active = true;
+    void getLiveTeachersAction().then((rows) => {
+      if (!active) return;
+      setTeachers(rows);
+      const map: Record<string, "Present" | "On Leave" | "Late"> = {};
+      for (const r of rows) map[r.id] = r.status === "On Leave" ? "On Leave" : "Present";
+      setStatuses(map);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const cycle = (id: string) => {
     const order: ("Present" | "On Leave" | "Late")[] = ["Present", "Late", "On Leave"];
@@ -27,9 +39,24 @@ export default function StaffAttendancePage() {
     <AppShell
       role="admin"
       title="Faculty & Staff Attendance"
-      subtitle="Biometric / RFID check-in register for November 25, 2026"
+      subtitle="Biometric / RFID check-in register for today"
       actions={
-        <Button variant="primary" onClick={() => showToast("Saved biometric staff attendance register.")}>
+        <Button
+          variant="primary"
+          onClick={async () => {
+            if (teachers[0]) {
+              await upsertStaffMemberAction({
+                employeeCode: teachers[0].empId,
+                fullName: teachers[0].name,
+                category: "Teacher",
+                department: teachers[0].department,
+                designation: teachers[0].designation,
+                baseSalaryInr: teachers[0].salaryGross,
+              });
+            }
+            showToast("Saved staff attendance register.");
+          }}
+        >
           Save Register
         </Button>
       }
@@ -47,7 +74,7 @@ export default function StaffAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {MOCK_TEACHERS.map((t) => {
+              {teachers.map((t) => {
                 const st = statuses[t.id] ?? "Present";
                 return (
                   <tr key={t.id} className="hover:bg-subtle/60">
