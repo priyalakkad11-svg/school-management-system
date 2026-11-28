@@ -10,12 +10,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project Rules (EduCore — Greenwood International Academy)
 
+- **Master Spec:** Always follow [docs/PHASE5-V2.md](docs/PHASE5-V2.md).
 - **Strict TypeScript:** TypeScript/TSX only (`strict: true`), no `any`, no `@ts-ignore`, no `eslint-disable`.
 - **Token-Only Styling:** All colors must reference CSS variables / Tailwind `@theme` tokens defined in `src/app/globals.css`. Zero raw hex/rgb/hsl outside `src/app/globals.css` (`pnpm check:tokens`).
 - **Next.js 16 Conventions:** Use `src/proxy.ts` (never deprecated `middleware.ts`), `next/font/google` (`Plus_Jakarta_Sans`), `next/image`, and App Router server/client separation.
-- **Service Layer & Validation:** Pages call only typed services in `src/services/*.ts` backed by `src/mocks/*.ts`. All entities have TypeScript types (`src/types/`) and Zod schemas (`src/schemas/`). Do not connect Supabase until explicitly instructed.
+- **Service Layer & Validation:** Pages call typed services/server actions backed by Supabase Postgres & Storage (no fake toasts, no runtime mock imports once each module completes). All entities have TypeScript types (`src/types/`) and Zod schemas (`src/schemas/`).
 - **Reuse First:** Check `COMPONENTS.md` before building UI. Reuse `AppShell`, `DataTablePage`, `FormPage`, `DashboardPage`, `DetailPage`, `PrintView`, `InboxView`, `CalendarView`.
-- **Quality Gates:** `pnpm typecheck`, `pnpm lint --max-warnings 0`, `pnpm check:tokens`, `pnpm build`, and Playwright + axe-core (`390`, `768`, `1440`) with zero horizontal overflow or violations.
+- **Quality Gates:** `pnpm typecheck`, `pnpm lint --max-warnings 0`, `pnpm check:tokens`, `pnpm check:mocks`, `pnpm check:toasts`, `pnpm test:rls`, `pnpm test:tenant`, `pnpm build`, and Playwright + axe-core (`390`, `768`, `1440`) with zero horizontal overflow or violations.
 
 ## Installed Versions
 - `node`: `26.13.1`

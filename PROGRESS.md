@@ -17,25 +17,71 @@
 - [x] Phase 2: All 110 screens implemented & verified
 - [x] Phase 3: SEO / AEO / GEO, JSON-LD, sitemap, robots, llms.txt, PWA manifest
 - [x] Phase 4: Full Playwright + axe-core + Lighthouse QA & `QA-REPORT.md`
-- [ ] Phase 5: Supabase Backend, Auth, RLS, Storage & Real Services
+- [ ] Phase 5 v2: Multi-School SaaS Backend, Tenancy, Super Admin, Full CRUD, Scale & Ops
 
 ---
 
-## PHASE 5 (Supabase Integration Checklist)
+## PHASE 5 (Single-Tenant Baseline Completed Prior to v2)
 - [x] Foundation: Supabase clients (`browser`, `server`, `admin`), proxy session refresh, DB types, error mapper, server-side pagination/filter helpers, `check:mocks`
-- [x] 1. Auth & profiles (login for all roles, forgot/reset password, OTP via email, first-time password setup, sign out, role redirects)
-- [x] 2. School setup (academic year, classes, sections, subjects, mappings, roles/permissions, users)
-- [ ] 3. Students & admissions & guardians
-- [ ] 4. Teachers, staff, payroll, leave
-- [ ] 5. Attendance & timetable
-- [ ] 6. Exams, marks, grades, results, report cards
-- [ ] 7. Fees, discounts, receipts
-- [ ] 8. Library, transport, hostel
-- [ ] 9. Communication (notices, events, holidays, messages, notification log, complaints)
-- [ ] 10. Reports, inventory, documents/certificates, audit logs, system settings
-- [ ] 11. Teacher / Student / Parent portals
-- [ ] 12. Common (notifications, account, search, help)
-- [ ] 13. Public pages data (notices, events, enquiry)
+- [x] 1. Auth & profiles (single-tenant baseline — to be retrofitted with `school_id` & `school_code` in Phase 5 v2 Step A/D)
+- [x] 2. School setup (single-tenant baseline — to be retrofitted with `school_id` & flexible onboarding in Phase 5 v2 Step A/C/D)
+- [ ] 3–13. Remaining modules (currently on mocks — tracked in full inside PHASE 5 v2 below)
+
+---
+
+## PHASE 5 v2 (Multi-School SaaS Checklist — Spec: `docs/PHASE5-V2.md`)
+
+### Step 0: Preflight & Tooling
+- [x] First Action: Save `docs/PHASE5-V2.md` & link in `AGENTS.md`
+- [x] Step 0: Baseline audit & `PHASE 5 v2` checklist ready
+
+### A. Tenancy Foundation
+- [ ] A1: `schools` table + `school_id` NOT NULL (FK + indexes) across all tenant tables + backfill into Demo School + Storage `<school_id>/` prefixes
+- [ ] A2: Security-definer helpers (`current_school_id`, `current_role`, `is_super_admin`, `has_permission`, `school_allows_write`) + tenant-scoped RLS on all tables
+- [ ] A3: Roles (`super_admin`, `school_admin`, `principal`, `teacher`, `student`, `parent`, `staff` sub-roles), DB-backed permissions, proxy + staff RBAC tightening
+- [ ] A4: `super_admin` server-only bootstrap script (`SUPER_ADMIN_EMAIL` + runtime password), escalation trigger lock, TOTP MFA enforcement
+- [ ] A5: `pnpm test:tenant` (introspects all `school_id` tables + cross-tenant isolation across 2 schools + Storage) & extended `pnpm test:rls` (`0` failures)
+
+### B. Platform / Super Admin (`111+` NEW screens — not in Figma)
+- [ ] B1: Plans, Slabs (INR per student/month), Coupons, Invoices (gapless FY numbering + GST/GSTIN), Manual Payments & Subscriptions schema + pricing calculator + proration/credit notes
+- [ ] B2: Atomic `create_school` server operation + Credentials Handover sheet (one-time copy, forced first-login password setup, reset/lock/unlock)
+- [ ] B3: Dual login (`school_code + user_id + password` & `email + password`) + DB-backed rate limits/lockout + per-school branding CSS vars
+- [ ] B4: Super Admin Screens `111–123`: Platform Dashboard, Schools List, Create School Wizard, School Detail tabs, Plans/Pricing, Subscriptions, Invoices & Print, Handover Sheet, Platform Announcements, Support Tickets, Platform Audit Logs, Platform Settings & Demo School Reset, Audited Support Access ("View as School")
+- [ ] B5: Usage metering (80% warn, 100% block), module toggles (sidebar + proxy + public), per-school settings & holidays, Demo School reset (`is_demo = true` excluded from MRR)
+- [ ] B6: Public per-school microsites `/s/[school_code]` (home, admissions, notices, events, contact + metadata, sitemap, JSON-LD)
+
+### C. School Onboarding & Academic Structure
+- [ ] C1: Persisted School Admin onboarding checklist (`school_onboarding`)
+- [ ] C2: Flexible classes (Nursery/LKG/UKG/1–12), multi-section capacities, teachers, subjects, rooms
+- [ ] C3: Chunked CSV/XLSX bulk import (`5,000+` rows dry-run + error report + idempotent re-run) for students, guardians, teachers, staff, fees
+- [ ] C4: Bulk credential generation per class/all + printable slips & one-time CSV
+- [ ] C5: Academic year rollover (promote/detain/transfer + fee carry-forward + read-only archive)
+
+### D. Module Loop — P0 (Pilot-Ready)
+- [ ] D1: `1` Auth retrofit (`school_id`, `school_code`, MFA for `super_admin`)
+- [ ] D2: `2` School Setup retrofit (scoped by `school_id` + onboarding/flexible structure)
+- [ ] D3: `3` Students, Guardians (`parent_students`) & Admissions (`/apply` live + honeypot + rate limit)
+- [ ] D4: `4` Teachers & Staff (full profiles, qualifications, class assignments)
+- [ ] D5: `5` Attendance & Timetable (edit lock window, absent alerts queue, teacher/room conflict detection)
+- [ ] D6: `6` Exams, Marks & Report Cards (scales, terms/weightage, marks lock/audited unlock, QR `/verify/[token]`)
+- [ ] D7: `7` Fees & Receipts (structures, installments, scholarships/concessions, late fee, partial payment, audited refunds, gapless receipts, defaulters, payment stub)
+- [ ] D8: `9` Notices, Messages & Notifications (SMTP email adapter, SMS/WhatsApp stubs, delivery log, class/section/role targeting)
+- [ ] D9: `11` Teacher, Student & Parent Portals (zero inline static data; LMS submissions & grading via private Storage + signed URLs; multi-child switcher)
+- [ ] D10: `12` Common (`/notifications`, `/account` real avatar upload, `/search`, `/help` tickets)
+- [ ] D-Milestone: Write `PILOT-READY.md`
+
+### D. Module Loop — P1
+- [ ] D11: `8` Library, Transport & Hostel (tenant CRUD + issue/return + fines + allocations)
+- [ ] D12: `10` Reports, Inventory, Documents/Certificates (QR `/verify/[token]`), Audit Logs, System Settings
+- [ ] D13: `13` Public Pages Data (live DB notices, events, `/s/[school_code]`)
+
+### E–I. Verification, Scale, Security, Docs & Leftovers
+- [ ] E1: No Fake Actions — audit all `159` `showToast(` calls + add `pnpm check:toasts` + `pnpm check:mocks` = 0
+- [ ] F1: Composite `(school_id, ...)` indexes, SQL counter views/RPC, 3-school `10,000+` student seed + `EXPLAIN ANALYZE` (`< 300ms`)
+- [ ] G1: DB rate limits + cleanup, `/api/health`, `error_logs` table + stub, soft-delete purge design, per-school CSV/JSON export & offboarding, guardian consent
+- [ ] H1: `docs/DEPLOY.md`, `docs/OPERATIONS.md`, `docs/SCHOOL-ADMIN-GUIDE.md`, update `/privacy` & `/terms` (`NEEDS LEGAL REVIEW`)
+- [ ] I1: `public/og-educore.png` (`1200×630`), per-school `Event` JSON-LD, remove unused starter SVGs
+- [ ] FINAL: Full gates across `390/768/1440`, `QA-REPORT.md` Phase 5 v2 section, `PILOT-READY.md`, Manual steps list
 
 ---
 
