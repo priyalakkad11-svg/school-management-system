@@ -412,11 +412,13 @@ export function ErrorState({
 export function FileUpload({
   title = "Drop PDF / CSV / XLSX or click to browse",
   subtitle = "Max file size 50 MB",
+  accept,
   onFileSelected,
 }: {
   title?: string;
   subtitle?: string;
-  onFileSelected?: (fileName: string) => void;
+  accept?: string;
+  onFileSelected?: (fileName: string, file?: File) => void;
 }) {
   const [fileName, setFileName] = React.useState<string | null>(null);
   return (
@@ -426,12 +428,13 @@ export function FileUpload({
       <span className="text-xs text-ink-secondary">{subtitle}</span>
       <input
         type="file"
+        accept={accept}
         className="sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) {
             setFileName(`${f.name} (${Math.max(1, Math.round(f.size / 1024))} KB)`);
-            onFileSelected?.(f.name);
+            onFileSelected?.(f.name, f);
           }
         }}
       />

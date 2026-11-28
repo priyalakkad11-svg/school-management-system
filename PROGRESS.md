@@ -51,11 +51,11 @@
 - [x] B6: Public per-school microsites `/s/[school_code]` (home, admissions, notices, events, contact + metadata, sitemap, JSON-LD) (`NEW — not in Figma`)
 
 ### C. School Onboarding & Academic Structure
-- [ ] C1: Persisted School Admin onboarding checklist (`school_onboarding`)
-- [ ] C2: Flexible classes (Nursery/LKG/UKG/1–12), multi-section capacities, teachers, subjects, rooms
-- [ ] C3: Chunked CSV/XLSX bulk import (`5,000+` rows dry-run + error report + idempotent re-run) for students, guardians, teachers, staff, fees
-- [ ] C4: Bulk credential generation per class/all + printable slips & one-time CSV
-- [ ] C5: Academic year rollover (promote/detain/transfer + fee carry-forward + read-only archive)
+- [x] C1: Persisted School Admin onboarding checklist (`school_onboarding`, `/admin/setup/onboarding` `NEW — not in Figma`)
+- [x] C2: Flexible classes (Nursery/LKG/UKG/1–12), multi-section capacities (`school_sections`), teachers, subjects, rooms
+- [x] C3: Chunked CSV/XLSX bulk import (`5,000+` rows dry-run + error report + idempotent re-run via `/admin/students/bulk-import`) for students, guardians, teachers, staff, fees
+- [x] C4: Bulk credential generation per class/all + printable slips & one-time CSV (`/admin/setup/credentials` `NEW — not in Figma`)
+- [x] C5: Academic year rollover (promote/detain/transfer + fee carry-forward + read-only archive via `/admin/students/promotion`)
 
 ### D. Module Loop — P0 (Pilot-Ready)
 - [ ] D1: `1` Auth retrofit (`school_id`, `school_code`, MFA for `super_admin`)
